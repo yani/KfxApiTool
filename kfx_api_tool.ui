@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>KfxApiTool</class>
+ <widget class="QMainWindow" name="KfxApiTool">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>650</width>
+    <height>400</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>KfxApiTool</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="childrenCollapsible">
+       <bool>false</bool>
+      </property>
+      <widget class="QFrame" name="frame">
+       <property name="frameShape">
+        <enum>QFrame::NoFrame</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Raised</enum>
+       </property>
+       <property name="lineWidth">
+        <number>0</number>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QSplitter" name="splitter_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="childrenCollapsible">
+           <bool>false</bool>
+          </property>
+          <widget class="QScrollArea" name="scrollArea">
+           <property name="autoFillBackground">
+            <bool>false</bool>
+           </property>
+           <property name="widgetResizable">
+            <bool>true</bool>
+           </property>
+           <widget class="QWidget" name="areaVarSubs">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>0</y>
+              <width>312</width>
+              <height>87</height>
+             </rect>
+            </property>
+           </widget>
+          </widget>
+          <widget class="QScrollArea" name="scrollArea_2">
+           <property name="widgetResizable">
+            <bool>true</bool>
+           </property>
+           <widget class="QWidget" name="areaCommands">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>0</y>
+              <width>312</width>
+              <height>87</height>
+             </rect>
+            </property>
+           </widget>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QPlainTextEdit" name="logDisplay">
+       <property name="autoFillBackground">
+        <bool>false</bool>
+       </property>
+       <property name="inputMethodHints">
+        <set>Qt::ImhNone</set>
+       </property>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>650</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuEvent">
+    <property name="title">
+     <string>Event</string>
+    </property>
+    <addaction name="actionSubscribeEvent"/>
+   </widget>
+   <widget class="QMenu" name="menuAbout">
+    <property name="title">
+     <string>About</string>
+    </property>
+    <addaction name="actionKeeperFxWebsite"/>
+    <addaction name="actionAbout"/>
+   </widget>
+   <widget class="QMenu" name="menuAPI">
+    <property name="title">
+     <string>API</string>
+    </property>
+    <addaction name="actionConnect"/>
+    <addaction name="actionConnectDefault"/>
+    <addaction name="actionAutoReconnect"/>
+    <addaction name="actionDisconnect"/>
+   </widget>
+   <widget class="QMenu" name="menuWindow">
+    <property name="title">
+     <string>Window</string>
+    </property>
+    <addaction name="actionStayOnTop"/>
+   </widget>
+   <widget class="QMenu" name="menuVariable">
+    <property name="title">
+     <string>Variable</string>
+    </property>
+    <addaction name="actionSetVar"/>
+    <addaction name="actionSubscribeVariable"/>
+   </widget>
+   <widget class="QMenu" name="menuCommand">
+    <property name="title">
+     <string>Command</string>
+    </property>
+    <addaction name="actionAddCommand"/>
+   </widget>
+   <addaction name="menuAPI"/>
+   <addaction name="menuCommand"/>
+   <addaction name="menuVariable"/>
+   <addaction name="menuEvent"/>
+   <addaction name="menuWindow"/>
+   <addaction name="menuAbout"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionSubscribeVariableOld">
+   <property name="text">
+    <string>Variable</string>
+   </property>
+  </action>
+  <action name="actionSubscribeEvent">
+   <property name="text">
+    <string>Event</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+  <action name="actionConnect">
+   <property name="text">
+    <string>Connect</string>
+   </property>
+  </action>
+  <action name="actionDisconnect">
+   <property name="text">
+    <string>Disconnect</string>
+   </property>
+  </action>
+  <action name="actionConnectDefault">
+   <property name="text">
+    <string>Connect to 127.0.0.1:5599</string>
+   </property>
+  </action>
+  <action name="actionStayOnTop">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Stay on top</string>
+   </property>
+  </action>
+  <action name="actionReadVar">
+   <property name="text">
+    <string>Read</string>
+   </property>
+  </action>
+  <action name="actionSetVar">
+   <property name="text">
+    <string>Set</string>
+   </property>
+  </action>
+  <action name="actionAddCommand">
+   <property name="text">
+    <string>Add</string>
+   </property>
+  </action>
+  <action name="actionConsoleCommand">
+   <property name="text">
+    <string>Console</string>
+   </property>
+  </action>
+  <action name="actionAutoReconnect">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Reconnect automatically</string>
+   </property>
+  </action>
+  <action name="actionKeeperFxWebsite">
+   <property name="text">
+    <string>KeeperFX.net</string>
+   </property>
+  </action>
+  <action name="actionSubscribeVariable">
+   <property name="text">
+    <string>Subscribe</string>
+   </property>
+  </action>
+ </widget>
+ <tabstops>
+  <tabstop>scrollArea</tabstop>
+  <tabstop>logDisplay</tabstop>
+  <tabstop>scrollArea_2</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

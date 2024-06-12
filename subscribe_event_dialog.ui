@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SubscribeEventDialog</class>
+ <widget class="QDialog" name="SubscribeEventDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>135</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Subscribe to event</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog {
+    border: 1px solid #222;
+}</string>
+  </property>
+  <widget class="QComboBox" name="comboBox">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>49</y>
+     <width>361</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>WIN_GAME</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>LOSE_GAME</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>GAME_SAVED</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>GAME_LOADED</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>GAME_STARTED</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>19</y>
+     <width>361</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Subscribe to event</string>
+   </property>
+  </widget>
+  <widget class="QDialogButtonBox" name="buttonBox">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>90</y>
+     <width>341</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+   <property name="standardButtons">
+    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>SubscribeEventDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>200</x>
+     <y>95</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>62</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

@@ -1,0 +1,65 @@
+#ifndef Q_KFX_VARIABLE_COMPLETER_H
+#define Q_KFX_VARIABLE_COMPLETER_H
+
+#include <QCompleter>
+#include <QStringList>
+#include <QStringListModel>
+
+class QKfxVariableCompleter : public QCompleter
+{
+    Q_OBJECT
+
+public:
+    explicit QKfxVariableCompleter(QObject *parent = nullptr)
+        : QCompleter(parent)
+    {
+        // List of words for auto-completion
+        QStringList wordList = {
+
+            "MONEY", "GAME_TURN", "HEART_HEALTH", "TOTAL_DIGGERS", "TOTAL_CREATURES",
+            "EVIL_CREATURES", "GOOD_CREATURES", "TOTAL_RESEARCH", "TOTAL_DOORS",
+            "TOTAL_DOORS_MANUFACTURED", "TOTAL_DOORS_USED", "TOTAL_TRAPS_MANUFACTURED",
+            "TOTAL_TRAPS_USED", "TOTAL_MANUFACTURED", "DOORS_SOLD", "TRAPS_SOLD",
+            "MANUFACTURE_GOLD", "MANUFACTURED_SOLD", "TOTAL_AREA", "TOTAL_CREATURES_LEFT",
+            "TOTAL_SALARY", "CURRENT_SALARY", "CREATURES_ANNOYED", "TIMES_ANNOYED_CREATURE",
+            "TIMES_TORTURED_CREATURE", "TIMES_LEVELUP_CREATURE", "ACTIVE_BATTLES", "BATTLES_WON",
+            "BATTLES_LOST", "ROOMS_DESTROYED", "SPELLS_STOLEN", "TIMES_BROKEN_INTO",
+            "DUNGEON_DESTROYED", "CREATURES_SCAVENGED_LOST", "CREATURES_SCAVENGED_GAINED",
+            "CREATURES_SACRIFICED", "CREATURES_FROM_SACRIFICE", "CREATURES_CONVERTED",
+            "EVIL_CREATURES_CONVERTED", "GOOD_CREATURES_CONVERTED", "ALL_DUNGEONS_DESTROYED",
+            "KEEPERS_DESTROYED", "DOORS_DESTROYED", "TOTAL_GOLD_MINED", "GOLD_POTS_STOLEN",
+            "BREAK_IN", "GHOSTS_RAISED", "SKELETONS_RAISED", "VAMPIRES_RAISED", "BONUS_TIME",
+            "BOX", "CREATURES_TRANSFERRED", "REWARDED[creature]", "SACRIFICED[creature]",
+            "TOTAL_SCORE",
+
+            "TIMER0", "TIMER1", "TIMER2", "TIMER3", "TIMER4", "TIMER5", "TIMER6", "TIMER7",
+
+            "FLAG0", "FLAG1", "FLAG2", "FLAG3", "FLAG4", "FLAG5", "FLAG6", "FLAG7",
+
+            "CAMPAIGN_FLAG0", "CAMPAIGN_FLAG1", "CAMPAIGN_FLAG2", "CAMPAIGN_FLAG3",
+            "CAMPAIGN_FLAG4", "CAMPAIGN_FLAG5", "CAMPAIGN_FLAG6", "CAMPAIGN_FLAG7",
+
+            "ENTRANCE", "TREASURE", "RESEARCH", "PRISON", "TORTURE", "TRAINING",
+            "WORKSHOP", "SCAVENGER", "TEMPLE", "GRAVEYARD", "BARRACKS", "GARDEN",
+            "LAIR", "BRIDGE", "GUARD_POST",
+
+            "WIZARD", "BARBARIAN", "ARCHER", "MONK", "DWARFA", "KNIGHT", "AVATAR", "TUNNELLER", "WITCH",
+            "GIANT", "FAIRY", "THIEF", "SAMURAI", "IMP", "HORNY", "SKELETON", "TROLL",
+            "DRAGON", "DEMONSPAWN", "FLY", "DARK_MISTRESS", "SORCEROR", "BILE_DEMON",
+            "BUG", "VAMPIRE", "SPIDER", "HELL_HOUND", "GHOST", "TENTACLE", "ORC",
+            "TIME_MAGE", "DRUID",
+
+            /*"POWER_HAND", "POWER_POSSESS", "POWER_SLAP",
+            "POWER_IMP", "POWER_ARMAGEDDON", "POWER_SIGHT", "POWER_SPEED", "POWER_OBEY",
+            "POWER_CALL_TO_ARMS", "POWER_CONCEAL", "POWER_HOLD_AUDIENCE", "POWER_CAVE_IN",
+            "POWER_HEAL_CREATURE", "POWER_LIGHTNING", "POWER_PROTECT", "POWER_CHICKEN",
+            "POWER_DISEASE", "POWER_DESTROY_WALLS", "POWER_TIME_BOMB", "POWER_REBOUND",
+            "POWER_FREEZE", "POWER_SLOW", "POWER_FLIGHT", "POWER_VISION"*/
+        };
+
+        this->setModel(new QStringListModel(wordList, this));
+        this->setCaseSensitivity(Qt::CaseInsensitive);  // Optional: make completer case insensitive
+    }
+};
+
+#endif // Q_KFX_VARIABLE_COMPLETER_H
