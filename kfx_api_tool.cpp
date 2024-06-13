@@ -1238,24 +1238,26 @@ void KfxApiTool::loadPresetFromFile(const QString &filePath)
         return;
     }
 
+    // Clear the subscription lists
+    subbedEventWidgetList.clear();
+    subbedVariableWidgetList.clear();
+
     // Clear the UI
     // Loop through each item in the scroll area and delete them
     for (int i = 0; i < areaCommandsScrollLayout->count(); i++) {
         QWidget *widget = areaCommandsScrollLayout->itemAt(i)->widget();
         if (widget != nullptr) {
+            widget->hide();
             widget->deleteLater();
         }
     }
     for (int i = 0; i < areaVarSubsScrollLayout->count(); i++) {
         QWidget *widget = areaVarSubsScrollLayout->itemAt(i)->widget();
         if (widget != nullptr) {
+            widget->hide();
             widget->deleteLater();
         }
     }
-
-    // Clear the subscription lists
-    subbedEventWidgetList.clear();
-    subbedVariableWidgetList.clear();
 
     // Get the JSON object
     QJsonObject jsonObject = jsonDoc.object();
