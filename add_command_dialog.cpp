@@ -17,8 +17,10 @@ AddCommandDialog::AddCommandDialog(QWidget *parent)
     commandPresetMap.insert(2, {"Reveal map (console)", 1, "reveal"});
     commandPresetMap.insert(3, {"Add 1,000,000 gold", 0, "ADD_GOLD_TO_PLAYER(PLAYER0,1000000)"});
     commandPresetMap.insert(4, {"Spawn lvl 10 imp", 0, "ADD_CREATURE_TO_LEVEL(PLAYER0,IMP,PLAYER0,1,10,0)"});
-    commandPresetMap.insert(5, {"Kill all imps", 0, "KILL_CREATURE(ALL_PLAYERS,IMP,ANYWHERE,99999)"});
-    commandPresetMap.insert(6, {"Enable compuchat", 1, "compuchat frequent"});
+    commandPresetMap.insert(5, {"Spawn lvl 10 horny", 0, "ADD_CREATURE_TO_LEVEL(PLAYER0,HORNY,PLAYER0,1,10,0)"});
+    commandPresetMap.insert(6, {"Kill all imps", 0, "KILL_CREATURE(ALL_PLAYERS,IMP,ANYWHERE,99999)"});
+    commandPresetMap.insert(7, {"Kill all creatures", 0, "KILL_CREATURE(ALL_PLAYERS,ANY_CREATURE,ANYWHERE,99999)"});
+    commandPresetMap.insert(8, {"Enable compuchat", 1, "compuchat frequent"});
 
     // Add presets to preset dropdown box
     ui->presetBox->addItem(""); // empty first one
