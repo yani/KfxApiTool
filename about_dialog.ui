@@ -94,7 +94,7 @@
     </font>
    </property>
    <property name="text">
-    <string>KeeperFX API Tool</string>
+    <string>KeeperFX API Tool v1.0.0</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
