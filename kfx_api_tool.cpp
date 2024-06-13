@@ -359,24 +359,20 @@ void KfxApiTool::handleSubscribeToEventReturn(const QJsonObject &request, const 
         return;
     }
 
-    // Check if a widget already exists
-    SubscribedEventWidget *widget = findSubscribedEventWidget(request["event"].toString());
-    if(widget != nullptr)
-    {
-
-        // This should never happen but we'll log a debug message
-        qDebug() << "Tried create event sub widget but it already exists";
-        return;
-    }
-
-    // Create the widget
-    widget = new SubscribedEventWidget(nullptr, request["event"].toString());
-    connect(widget, &SubscribedEventWidget::removeSubbedEvent, this, &KfxApiTool::removeSubscribedEvent);
-    areaVarSubsScrollLayout->addWidget(widget);
-    subbedEventWidgetList.append(widget);
-
     // Show message to end user
     appendLog("Subscribed to " + request["event"].toString());
+
+    // Check if the widget doesn't exist yet
+    SubscribedEventWidget *widget = findSubscribedEventWidget(request["event"].toString());
+    if(widget == nullptr)
+    {
+        // Create the widget
+        widget = new SubscribedEventWidget(nullptr, request["event"].toString());
+        connect(widget, &SubscribedEventWidget::removeSubbedEvent, this, &KfxApiTool::removeSubscribedEvent);
+        areaVarSubsScrollLayout->addWidget(widget);
+        subbedEventWidgetList.append(widget);
+    }
+
 }
 
 void KfxApiTool::handleCommandExecutedReturn(const QJsonObject &request, const QJsonObject &response)
@@ -464,17 +460,17 @@ void KfxApiTool::handleUnsubscribeVariableReturn(const QJsonObject &request, con
         return;
     }
 
-    SubscribedVariableWidget *widget = findSubscribedVariableWidget(request["player"].toString(), request["var"].toString());
-    if(widget == nullptr){
-        QMessageBox::warning(this, "KfxApiTool", "Something went wrong");
-        return;
-    }
-
-    // Remove the widget
-    removeSubscribedVariableWidget(widget);
-
     // Show message
     appendLog("Unsubscribed from " + playerToHtml(request["player"].toString()) + " : " + request["var"].toString());
+
+    // See if this subscription has a widget
+    SubscribedVariableWidget *widget = findSubscribedVariableWidget(request["player"].toString(), request["var"].toString());
+    if(widget != nullptr){
+
+        // Remove the widget
+        removeSubscribedVariableWidget(widget);
+    }
+
 }
 
 void KfxApiTool::handleUnsubscribeEventReturn(const QJsonObject &request, const QJsonObject &response)
@@ -502,19 +498,16 @@ void KfxApiTool::handleUnsubscribeEventReturn(const QJsonObject &request, const 
         return;
     }
 
-    // Check if there is a widget for this event
-    SubscribedEventWidget *widget = findSubscribedEventWidget(request["event"].toString());
-    if(widget == nullptr){
-        qDebug() << "Tried to delete non existing widget for event: " << request["event"].toString();
-        // No need to show a message to the user as this should never happen
-        return;
-    }
-
-    // Delete the widget
-    removeSubscribedEventWidget(widget);
-
     // Show a success message
     appendLog("Unsubscribed from " + request["event"].toString());
+
+    // Check if there is a widget for this event
+    SubscribedEventWidget *widget = findSubscribedEventWidget(request["event"].toString());
+    if(widget != nullptr){
+
+        // Delete the widget
+        removeSubscribedEventWidget(widget);
+    }
 }
 
 void KfxApiTool::handleSetVariableReturn(const QJsonObject &request, const QJsonObject &response)
@@ -853,6 +846,23 @@ void KfxApiTool::setDisconnectedGuiStatus()
     ui->actionSetVar->setDisabled(true);
 }
 
+void KfxApiTool::subToAllInWidgetList()
+{
+    // Subscribe to any variable subscriptions already in the UI
+    for(SubscribedVariableWidget *widget: subbedVariableWidgetList)
+    {
+        // Subscribe to the var on the API server
+        subscribeToVariable(widget->player, widget->variable);
+    }
+
+    // Subscribe to any event subscriptions already in the UI
+    for(SubscribedEventWidget *widget: subbedEventWidgetList)
+    {
+        // Subscribe to the var on the API server
+        subscribeToEvent(widget->event);
+    }
+}
+
 void KfxApiTool::onConnected()
 {
     // Stop the timeout timer
@@ -868,27 +878,8 @@ void KfxApiTool::onConnected()
     // If we should reconnect we need to remember this
     shouldReconnect = true;
 
-    // Subscribe to any variable subscriptions already in the UI
-    for(SubscribedVariableWidget *widget: subbedVariableWidgetList)
-    {
-        // Subscribe to the var on the API server
-        subscribeToVariable(widget->player, widget->variable);
-
-        // This sleep fixes a condition where the underlying TCP socket
-        // tries to combine packets even if we don't want that
-        QThread::msleep(50);
-    }
-
-    // Subscribe to any event subscriptions already in the UI
-    for(SubscribedEventWidget *widget: subbedEventWidgetList)
-    {
-        // Subscribe to the var on the API server
-        subscribeToEvent(widget->event);
-
-        // This sleep fixes a condition where the underlying TCP socket
-        // tries to combine packets even if we don't want that
-        QThread::msleep(50);
-    }
+    // Subscribe to all pre-subscribed subscriptions
+    subToAllInWidgetList();
 }
 
 void KfxApiTool::onDisconnected()
@@ -1266,11 +1257,7 @@ void KfxApiTool::loadPresetFromFile(const QString &filePath)
         return;
     }
 
-    // Clear the subscription lists
-    subbedEventWidgetList.clear();
-    subbedVariableWidgetList.clear();
-
-    // Clear the UI
+    // Clear the commands
     // Loop through each item in the scroll area and delete them
     for (int i = 0; i < areaCommandsScrollLayout->count(); i++) {
         QWidget *widget = areaCommandsScrollLayout->itemAt(i)->widget();
@@ -1279,13 +1266,37 @@ void KfxApiTool::loadPresetFromFile(const QString &filePath)
             widget->deleteLater();
         }
     }
-    for (int i = 0; i < areaVarSubsScrollLayout->count(); i++) {
-        QWidget *widget = areaVarSubsScrollLayout->itemAt(i)->widget();
-        if (widget != nullptr) {
-            widget->hide();
-            widget->deleteLater();
-        }
+
+    // Remove any subscribed variables
+    for(SubscribedVariableWidget *widget: subbedVariableWidgetList)
+    {
+        QString player = widget->player;
+        QString variable = widget->variable;
+
+        // Hide widget asap
+        widget->hide();
+        widget->deleteLater();
+
+        // Actually unsubscribe on API
+        removeSubscribedVariable(player, variable);
     }
+
+    // Remove any subscribed events
+    for(SubscribedEventWidget *widget: subbedEventWidgetList)
+    {
+        QString event = widget->event;
+
+        // Hide widget asap
+        widget->hide();
+        widget->deleteLater();
+
+        // Actually unsubscribe on API
+        removeSubscribedEvent(widget->event);
+    }
+
+    // Clear the subscription lists
+    subbedEventWidgetList.clear();
+    subbedVariableWidgetList.clear();
 
     // Get the JSON object
     QJsonObject jsonObject = jsonDoc.object();
@@ -1302,14 +1313,32 @@ void KfxApiTool::loadPresetFromFile(const QString &filePath)
 
             if(subObject.contains("event") && subObject["event"].isString())
             {
+                // Add the widget
                 addSubscribedEventWidget(subObject["event"].toString());
+
+                // Check if we are connected
+                if (tcpSocket->state() == QTcpSocket::ConnectedState) {
+
+                    // Actually subscribe to the event
+                    subscribeToEvent(subObject["event"].toString());
+                }
+
                 continue;
             }
 
             if(subObject.contains("player") && subObject["player"].isString()
                 && subObject.contains("variable") && subObject["variable"].isString())
             {
+                // Add the widget
                 addSubscribedVariableWidget(subObject["player"].toString(), subObject["variable"].toString(), -1);
+
+                // Check if we are connected
+                if (tcpSocket->state() == QTcpSocket::ConnectedState) {
+
+                    // Actually subscribe to the variable
+                    subscribeToVariable(subObject["player"].toString(), subObject["variable"].toString());
+                }
+
                 continue;
             }
         }

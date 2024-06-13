@@ -144,5 +144,7 @@ private:
 
     void savePresetToFile(const QString &filePath);
     void loadPresetFromFile(const QString &filePath);
+
+    void subToAllInWidgetList();
 };
 #endif // KFX_API_TOOL_H
