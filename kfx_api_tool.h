@@ -18,6 +18,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QJsonArray>
+#include <QSettings>
 
 #include "subscribed_variable_widget.h"
 #include "subscribed_event_widget.h"
@@ -137,6 +138,9 @@ private:
     void handleSetVariableReturn(const QJsonObject &request, const QJsonObject &response);
     void handleUnsubscribeVariableReturn(const QJsonObject &request, const QJsonObject &response);
     void handleUnsubscribeEventReturn(const QJsonObject &request, const QJsonObject &response);
+
+    QString getLastPresetDirectory();
+    void setLastPresetDirectory(const QString &dirPath);
 
     void savePresetToFile(const QString &filePath);
     void loadPresetFromFile(const QString &filePath);

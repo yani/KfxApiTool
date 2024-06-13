@@ -22,6 +22,10 @@ KfxApiTool::KfxApiTool(QWidget *parent)
 {
     ui->setupUi(this);
 
+    // Setup App settings file
+    QCoreApplication::setOrganizationName("Yani");
+    QCoreApplication::setApplicationName("KfxApiTool");
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1099,17 +1103,41 @@ void KfxApiTool::removeActionCallback(int id)
 
 void KfxApiTool::savePreset()
 {
-    QString filePath = QFileDialog::getSaveFileName(this, tr("Save Preset"), "", tr("Preset Files (*.api);;All Files (*)"));
+    // Open save file dialog
+    QString lastPresetDir = getLastPresetDirectory();
+    QString filePath = QFileDialog::getSaveFileName(this, tr("Save Preset"), lastPresetDir, tr("Preset Files (*.api);;All Files (*)"));
     if (!filePath.isEmpty()) {
+
+        // Check if filepath has a file extension
+        QFileInfo fileInfo(filePath);
+        qDebug() << fileInfo.suffix();
+        if (fileInfo.suffix().isEmpty() || fileInfo.suffix() != "api") {
+
+            // Append .api
+            filePath += ".api";
+        }
+
+        // Save the file
         savePresetToFile(filePath);
+
+        // Save the directory for next time
+        setLastPresetDirectory(fileInfo.path());
     }
 }
 
 void KfxApiTool::loadPreset()
 {
-    QString filePath = QFileDialog::getOpenFileName(this, tr("Load Preset"), "", tr("Preset Files (*.api);;All Files (*)"));
+    // Open load file dialog
+    QString lastPresetDir = getLastPresetDirectory();
+    QString filePath = QFileDialog::getOpenFileName(this, tr("Load Preset"), lastPresetDir, tr("Preset Files (*.api);;All Files (*)"));
     if (!filePath.isEmpty()) {
+
+        // Load the file
         loadPresetFromFile(filePath);
+
+        // Save the directory for next time
+        QFileInfo fileInfo(filePath);
+        setLastPresetDirectory(fileInfo.path());
     }
 }
 
@@ -1313,7 +1341,15 @@ void KfxApiTool::loadPresetFromFile(const QString &filePath)
     QMessageBox::information(this, "KfxApiTool", "Preset loaded!");
 }
 
+QString KfxApiTool::getLastPresetDirectory() {
+    QSettings settings;
+    return settings.value("lastPresetDir").toString();
+}
 
+void KfxApiTool::setLastPresetDirectory(const QString &dirPath) {
+    QSettings settings;
+    settings.setValue("lastPresetDir", dirPath);
+}
 
 void KfxApiTool::addSubscribedVariableWidget(const QString &player, const QString &variable, int value){
     SubscribedVariableWidget *widget = new SubscribedVariableWidget(nullptr, player, variable, value);
