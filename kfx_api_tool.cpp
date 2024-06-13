@@ -22,22 +22,44 @@ KfxApiTool::KfxApiTool(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Connect Actions
-    connect(ui->actionAbout, &QAction::triggered, this, &KfxApiTool::openAboutDialog);
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Menu: API
     connect(ui->actionConnect, &QAction::triggered, this, &KfxApiTool::openConnectDialog);
-    connect(ui->actionSubscribeVariable, &QAction::triggered, this, &KfxApiTool::openSubscribeVariableDialog);
-    connect(ui->actionSubscribeEvent, &QAction::triggered, this, &KfxApiTool::openSubscribeEventDialog);
-    connect(ui->actionAddCommand, &QAction::triggered, this, &KfxApiTool::openAddCommandDialog);
-    connect(ui->actionSetVar, &QAction::triggered, this, &KfxApiTool::openSetVariableDialog);
-    connect(ui->actionDisconnect, &QAction::triggered, this, &KfxApiTool::disconnect);
-    connect(ui->actionStayOnTop, &QAction::toggled, this, &KfxApiTool::toggleStayOnTop);
-    connect(ui->actionAutoReconnect, &QAction::toggled, this, &KfxApiTool::toggleReconnect);
     connect(ui->actionConnectDefault, &QAction::triggered, this, [this]() {
         handleServerApiSubmitted("127.0.0.1:5599");
     });
+    connect(ui->actionAutoReconnect, &QAction::toggled, this, &KfxApiTool::toggleReconnect);
+    connect(ui->actionDisconnect, &QAction::triggered, this, &KfxApiTool::disconnect);
+
+    // Menu: COMMAND
+    connect(ui->actionAddCommand, &QAction::triggered, this, &KfxApiTool::openAddCommandDialog);
+
+    // Menu: VARIABLE
+    connect(ui->actionSetVar, &QAction::triggered, this, &KfxApiTool::openSetVariableDialog);
+    connect(ui->actionSubscribeVariable, &QAction::triggered, this, &KfxApiTool::openSubscribeVariableDialog);
+
+    // Menu: EVENT
+    connect(ui->actionSubscribeEvent, &QAction::triggered, this, &KfxApiTool::openSubscribeEventDialog);
+
+    // Menu: PRESET
+    connect(ui->actionSavePreset, &QAction::triggered, this, &KfxApiTool::savePreset);
+    connect(ui->actionLoadPreset, &QAction::triggered, this, &KfxApiTool::loadPreset);
+
+    // Menu: WINDOW
+    // This menu is disabled on non Windows machines
+    // On Linux for example it requires heavy x11 bypasses which we do not want to do
+    connect(ui->actionStayOnTop, &QAction::toggled, this, &KfxApiTool::toggleStayOnTop);
+
+    // Menu: ABOUT
+    connect(ui->actionAbout, &QAction::triggered, this, &KfxApiTool::openAboutDialog);
     connect(ui->actionKeeperFxWebsite, &QAction::triggered, this, [this]() {
         QDesktopServices::openUrl(QUrl("https://keeperfx.net"));
     });
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Connect QTcpSocket signals to slots
     connect(tcpSocket, &QTcpSocket::connected, this, &KfxApiTool::onConnected);
@@ -49,6 +71,9 @@ KfxApiTool::KfxApiTool(QWidget *parent)
 
     // Reconnect Timer
     connect(connectionReconnectTimer, &QTimer::timeout, this, &KfxApiTool::onReconnectTimer);
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Handle GUI start
     ui->logDisplay->setReadOnly(true);
@@ -117,13 +142,16 @@ QString KfxApiTool::playerToHtml(QString playerName)
     return playerName;
 }
 
-// Set the sizes of the top and bottom elements in the window to 2/3 and 1/3
+
 void KfxApiTool::setSplitterSizes() {
+
+    // Set the sizes of the top and bottom elements in the window to 2/3 and 1/3
     int totalHeight = ui->splitter->height();
     int scrollAreaHeight = 2 * (totalHeight / 3);
     int plainTextEditHeight = totalHeight / 3;
     ui->splitter->setSizes({scrollAreaHeight, plainTextEditHeight});
 
+    // Set the sizes of the top 2 elements to 3/5 and 2/5
     int splitter2totalWidth = ui->splitter_2->width();
     int splitter2scrollAreaHeight = 3 * (splitter2totalWidth / 5);
     int splitter2plainTextEditHeight = 2 * (splitter2totalWidth / 5);
@@ -218,6 +246,21 @@ SubscribedVariableWidget* KfxApiTool::findSubscribedVariableWidget(const QString
     return nullptr;
 }
 
+void KfxApiTool::removeSubscribedVariableWidget(SubscribedVariableWidget *widget)
+{
+    int index = subbedVariableWidgetList.indexOf(widget);
+    if (index != -1) {
+        // Remove the widget from the layout
+        layout()->removeWidget(widget);
+
+        // Remove the widget from the list
+        subbedVariableWidgetList.removeAt(index);
+
+        // Delete the widget if necessary
+        widget->deleteLater();
+    }
+}
+
 SubscribedEventWidget* KfxApiTool::findSubscribedEventWidget(const QString &event)
 {
     for(SubscribedEventWidget *widget : subbedEventWidgetList)
@@ -230,14 +273,42 @@ SubscribedEventWidget* KfxApiTool::findSubscribedEventWidget(const QString &even
     return nullptr;
 }
 
+void KfxApiTool::removeSubscribedEventWidget(SubscribedEventWidget *widget)
+{
+    int index = subbedEventWidgetList.indexOf(widget);
+    if (index != -1) {
+        // Remove the widget from the layout
+        layout()->removeWidget(widget);
+
+        // Remove the widget from the list
+        subbedEventWidgetList.removeAt(index);
+
+        // Delete the widget if necessary
+        widget->deleteLater();
+    }
+}
+
 void KfxApiTool::handleSubscribeToVariableReturn(const QJsonObject &request, const QJsonObject &response)
 {
+    // Get some variables
+    QString player = request["player"].toString();
+    QString variable = request["var"].toString();
+
     // Check for error
     if(response.contains("error")){
 
         // Handle unknown variable
         if(response["error"].toString() == "UNKNOWN_VAR"){
-            QMessageBox::warning(this, "KfxApiTool", "Unknown variable");
+
+            // Find the widget with this subscription
+            SubscribedVariableWidget *widget = findSubscribedVariableWidget(player, variable);
+            if(widget != nullptr)
+            {
+                // Mark it as broken
+                widget->setValidStatus(false);
+            }
+
+            QMessageBox::warning(this, "KfxApiTool", "Unknown variable: " + player + " : " + variable);
             return;
         }
 
@@ -246,21 +317,25 @@ void KfxApiTool::handleSubscribeToVariableReturn(const QJsonObject &request, con
         return;
     }
 
-    // Get current value
+    // Create JSON object
     QJsonObject jsonValueRequestObject;
     jsonValueRequestObject["ack"] = currentAckId;
     jsonValueRequestObject["action"] = "read_var";
-    jsonValueRequestObject["var"] = request["var"];
-    jsonValueRequestObject["player"] = request["player"];
+    jsonValueRequestObject["var"] = variable;
+    jsonValueRequestObject["player"] = player;
 
     // Create a callback to handle the response
-    addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) { handleSubscribeToVariableReadReturn(request, response); }, jsonValueRequestObject);
+    addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) {
+            handleSubscribeToVariableReadReturn(request, response);
+    }, jsonValueRequestObject);
 
+    // Send the JSON
     sendJSON(jsonValueRequestObject);
 
     // Increment current ack
     currentAckId++;
 
+    // Show message to end user
     appendLog("Subscribed to " + playerToHtml(request["player"].toString()) + " : " + request["var"].toString());
 }
 
@@ -271,7 +346,7 @@ void KfxApiTool::handleSubscribeToEventReturn(const QJsonObject &request, const 
 
         // Handle unknown variable
         if(response["error"].toString() == "UNKNOWN_EVENT"){
-            QMessageBox::warning(this, "KfxApiTool", "Unknown event");
+            QMessageBox::warning(this, "KfxApiTool", "Unknown event: " + request["var"].toString());
             return;
         }
 
@@ -280,15 +355,23 @@ void KfxApiTool::handleSubscribeToEventReturn(const QJsonObject &request, const 
         return;
     }
 
+    // Check if a widget already exists
     SubscribedEventWidget *widget = findSubscribedEventWidget(request["event"].toString());
-    if(widget == nullptr)
+    if(widget != nullptr)
     {
-        widget = new SubscribedEventWidget(nullptr, request["event"].toString());
-        connect(widget, &SubscribedEventWidget::removeSubbedEvent, this, &KfxApiTool::removeSubscribedEvent);
-        areaVarSubsScrollLayout->addWidget(widget);
-        subbedEventWidgetList.append(widget);
+
+        // This should never happen but we'll log a debug message
+        qDebug() << "Tried create event sub widget but it already exists";
+        return;
     }
 
+    // Create the widget
+    widget = new SubscribedEventWidget(nullptr, request["event"].toString());
+    connect(widget, &SubscribedEventWidget::removeSubbedEvent, this, &KfxApiTool::removeSubscribedEvent);
+    areaVarSubsScrollLayout->addWidget(widget);
+    subbedEventWidgetList.append(widget);
+
+    // Show message to end user
     appendLog("Subscribed to " + request["event"].toString());
 }
 
@@ -315,6 +398,7 @@ void KfxApiTool::handleCommandExecutedReturn(const QJsonObject &request, const Q
         return;
     }
 
+    // Show message to end user
     appendLog("Command executed!");
 }
 
@@ -334,21 +418,20 @@ void KfxApiTool::handleSubscribeToVariableReadReturn(const QJsonObject &request,
         return;
     }
 
+    // Get variables
     QString player = request["player"].toString();
     QString variable = request["var"].toString();
     int value = response["data"].toInt();
 
+    // Check if we have a widget for this variable
     SubscribedVariableWidget *widget = findSubscribedVariableWidget(player, variable);
     if(widget == nullptr)
     {
-        widget = new SubscribedVariableWidget(nullptr, player, variable, value);
-        connect(widget, &SubscribedVariableWidget::removeSubbedVariable, this, &KfxApiTool::removeSubscribedVariable);
-        connect(widget, &SubscribedVariableWidget::editSubbedVariable, this, &KfxApiTool::editSubscribedVariable);
-        areaVarSubsScrollLayout->addWidget(widget);
-        subbedVariableWidgetList.append(widget);
+        // Create the widget
+        addSubscribedVariableWidget(player, variable, value);
     } else {
 
-        // Update already existing value
+        // Update already existing widget
         widget->update(value);
     }
 }
@@ -383,11 +466,8 @@ void KfxApiTool::handleUnsubscribeVariableReturn(const QJsonObject &request, con
         return;
     }
 
-    // Remove from UI
-    areaVarSubsScrollLayout->removeWidget(widget);
-
-    // Remove widget itself
-    delete widget;
+    // Remove the widget
+    removeSubscribedVariableWidget(widget);
 
     // Show message
     appendLog("Unsubscribed from " + playerToHtml(request["player"].toString()) + " : " + request["var"].toString());
@@ -411,30 +491,30 @@ void KfxApiTool::handleUnsubscribeEventReturn(const QJsonObject &request, const 
         return;
     }
 
+    // Make sure response was a succes
     if(response.contains("success") && response["success"].toBool() != true)
     {
         QMessageBox::warning(this, "KfxApiTool", "Failed to unsubscribe");
         return;
     }
 
+    // Check if there is a widget for this event
     SubscribedEventWidget *widget = findSubscribedEventWidget(request["event"].toString());
     if(widget == nullptr){
-        QMessageBox::warning(this, "KfxApiTool", "Something went wrong");
+        qDebug() << "Tried to delete non existing widget for event: " << request["event"].toString();
+        // No need to show a message to the user as this should never happen
         return;
     }
 
-    // Remove from UI
-    areaVarSubsScrollLayout->removeWidget(widget);
+    // Delete the widget
+    removeSubscribedEventWidget(widget);
 
-    // Remove widget itself
-    delete widget;
-
-    // Show message
+    // Show a success message
     appendLog("Unsubscribed from " + request["event"].toString());
 }
 
-void KfxApiTool::handleSetVariableReturn(const QJsonObject &request, const QJsonObject &response){
-
+void KfxApiTool::handleSetVariableReturn(const QJsonObject &request, const QJsonObject &response)
+{
     // Check for error
     if(response.contains("error")){
 
@@ -475,7 +555,6 @@ void KfxApiTool::handleSetVariableReturn(const QJsonObject &request, const QJson
 
 void KfxApiTool::subscribeToVariable(const QString &player, const QString &variable)
 {
-    QJsonParseError parseError;
 
     // Create JSON object to send to API
     QJsonObject jsonSubObject;
@@ -485,17 +564,19 @@ void KfxApiTool::subscribeToVariable(const QString &player, const QString &varia
     jsonSubObject["player"] = player;
 
     // Create a callback to handle the response
-    addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) { handleSubscribeToVariableReturn(request, response); }, jsonSubObject);
+    addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) {
+            handleSubscribeToVariableReturn(request, response);
+    }, jsonSubObject);
 
+    // Send JSON
     sendJSON(jsonSubObject);
 
+    // Update current ACK
     currentAckId++;
 }
 
 void KfxApiTool::subscribeToEvent(const QString &event)
 {
-    QJsonParseError parseError;
-
     // Create JSON object to send to API
     QJsonObject jsonSubObject;
     jsonSubObject["ack"] = currentAckId;
@@ -503,58 +584,65 @@ void KfxApiTool::subscribeToEvent(const QString &event)
     jsonSubObject["event"] = event;
 
     // Create a callback to handle the response
-    addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) { handleSubscribeToEventReturn(request, response); }, jsonSubObject);
+    addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) {
+            handleSubscribeToEventReturn(request, response);
+    }, jsonSubObject);
 
+    // Send JSON
     sendJSON(jsonSubObject);
 
+    // Update current ACK
     currentAckId++;
 }
 
 void KfxApiTool::handleSubscribeVariableSubmitted(const QString &player, const QString &variable)
 {
-    // Make sure we are connected
-    if (tcpSocket->state() != QTcpSocket::ConnectedState) {
-        return;
-    }
-
     // Make sure we are not subbed to this variable yet
     if(findSubscribedVariableWidget(player, variable) != nullptr){
         QMessageBox::warning(this, "KfxApiTool", "Already subscribed to this variable");
         return;
     }
 
-    subscribeToVariable(player, variable);
+    // Create the widget
+    addSubscribedVariableWidget(player, variable, -1);
+
+    // Check if we are connected to the API
+    if (tcpSocket->state() == QTcpSocket::ConnectedState) {
+
+        // Actually subscribe to the variable
+        subscribeToVariable(player, variable);
+    }
 }
 
 void KfxApiTool::handleCommandSubmitted(const QString &name, int type, const QString &command)
 {
-    //CommandWidget *widget = findCommandWidget(name, type, command);
-    CommandWidget *widget = nullptr;
-    if(widget == nullptr)
-    {
-        widget = new CommandWidget(nullptr, name, type, command);
-        connect(widget, &CommandWidget::executeCommand, this, &KfxApiTool::handleCommandExecuted);
-        connect(widget, &CommandWidget::editCommand, this, &KfxApiTool::openEditCommandDialog);
-        areaCommandsScrollLayout->addWidget(widget);
-        commandWidgetList.append(widget);
+    // Simply create the widget
+    // Commands can be duplicates because it would be a pain to check if it already exists
+    addCommandWidget(name, type, command);
 
-        appendLog("Command added: " + name);
-    } else {
-
-        // Update already existing value
-        // ERROR already exists
-    }
+    // Show the end user a message
+    appendLog("Command added: " + name);
 }
 
 void KfxApiTool::handleCommandUpdated(CommandWidget *widget, const QString &name, int type, const QString &command)
 {
+    // Update the widget which also holds the data of the command
     widget->updateWidget(name, type, command);
 
+    // Show message to end user
     appendLog("Command updated: " + name);
 }
 
 void KfxApiTool::handleSetVarSubmitted(const QString &player, const QString &variable, int value)
 {
+    // Make sure we are connected
+    if (tcpSocket->state() != QTcpSocket::ConnectedState) {
+        appendLog("Can't update variable when not connected to the API!");
+        QMessageBox::information(this, "KfxApiTool", "Can't update variable when not connected to the API!");
+        return;
+    }
+
+    // Make the JSON object
     QJsonObject jsonSubObject;
     jsonSubObject["ack"] = currentAckId;
     jsonSubObject["action"] = "set_var";
@@ -563,18 +651,26 @@ void KfxApiTool::handleSetVarSubmitted(const QString &player, const QString &var
     jsonSubObject["value"] = value;
 
     // Create a callback to handle the response
-    addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) { handleSetVariableReturn(request, response); }, jsonSubObject);
+    addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) {
+            handleSetVariableReturn(request, response);
+    }, jsonSubObject);
 
+    // Send the JSON to the API
     sendJSON(jsonSubObject);
 
+    // Update current ACK
     currentAckId++;
 }
 
 void KfxApiTool::handleCommandExecuted(const QString &name, int type, const QString &command)
 {
-    QJsonParseError parseError;
+    // Make sure we are connected
+    if (tcpSocket->state() != QTcpSocket::ConnectedState) {
+        appendLog("Can't execute command when not connected!");
+        return;
+    }
 
-    // Decide the action
+    // Decide the action based on the users choice in the GUI
     QString action;
     if(type == 0){
         action = "map_command";
@@ -589,39 +685,56 @@ void KfxApiTool::handleCommandExecuted(const QString &name, int type, const QStr
     jsonSubObject["command"] = command;
 
     // Create a callback to handle the response
-    addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) { handleCommandExecutedReturn(request, response); }, jsonSubObject);
+    addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) {
+            handleCommandExecutedReturn(request, response);
+    }, jsonSubObject);
 
+    // Send the JSON to the API
     sendJSON(jsonSubObject);
 
+    // Update current ACK
     currentAckId++;
 }
 
 void KfxApiTool::handleSubscribeEventSubmitted(const QString &event)
 {
-    // Make sure we are connected
-    if (tcpSocket->state() != QTcpSocket::ConnectedState) {
-        return;
-    }
 
     // Make sure we are not subbed to this variable yet
     if(findSubscribedEventWidget(event) != nullptr){
-        QMessageBox::warning(this, "KfxApiTool", "Already subscribed to this event");
+        QMessageBox::information(this, "KfxApiTool", "Already subscribed to event: " + event);
         return;
     }
 
+    // Check if we are disconneced
+    if (tcpSocket->state() != QTcpSocket::ConnectedState) {
+
+        // Simply create the widget
+        // We don't need to send a packet to the server here because
+        // it will be sent when we connect to the API
+        addSubscribedEventWidget(event);
+        return;
+    }
+
+    // Actually subscribe to this event on the API
     subscribeToEvent(event);
 }
 
-void KfxApiTool::removeSubscribedVariable(const QString &player, const QString &variable){
-
+void KfxApiTool::removeSubscribedVariable(const QString &player, const QString &variable)
+{
+    // Make sure a widget for this subscription exists
     SubscribedVariableWidget *widget = findSubscribedVariableWidget(player, variable);
     if(widget == nullptr){
         return;
     }
 
+    // Check if we are disconnected
     if (tcpSocket->state() == QTcpSocket::UnconnectedState) {
-        areaVarSubsScrollLayout->removeWidget(widget);
-        delete widget;
+
+        // Delete the subscribed variable widget
+        removeSubscribedVariableWidget(widget);
+
+        // We don't need to send a packet to the server because
+        // the server will already have removed the subscription
         return;
     }
 
@@ -642,8 +755,16 @@ void KfxApiTool::removeSubscribedVariable(const QString &player, const QString &
     currentAckId++;
 }
 
-void KfxApiTool::editSubscribedVariable(const QString &player, const QString &variable, int value){
+void KfxApiTool::editSubscribedVariable(const QString &player, const QString &variable, int value)
+{
+    // Make sure we are connected
+    if (tcpSocket->state() != QTcpSocket::ConnectedState) {
+        appendLog("Can not set a variable while disconnected");
+        QMessageBox::warning(this, "KfxApiTool", "Unable to set a variable when not connected to the API");
+        return;
+    }
 
+    // Open the set variable dialog
     SetVariableDialog *dialog = new SetVariableDialog(this, player, variable, value);
     connect(dialog, &SetVariableDialog::setVarSubmitted, this, &KfxApiTool::handleSetVarSubmitted);
     dialog->exec();
@@ -651,14 +772,20 @@ void KfxApiTool::editSubscribedVariable(const QString &player, const QString &va
 
 void KfxApiTool::removeSubscribedEvent(const QString &event)
 {
+    // Make sure there is a widget for this subscription
     SubscribedEventWidget *widget = findSubscribedEventWidget(event);
     if(widget == nullptr){
         return;
     }
 
+    // Check if we are disconnected
     if (tcpSocket->state() == QTcpSocket::UnconnectedState) {
-        areaVarSubsScrollLayout->removeWidget(widget);
-        delete widget;
+
+        // Delete the subscribed event widget
+        removeSubscribedEventWidget(widget);
+
+        // We don't need to send a packet to the server because
+        // the server will already have removed the subscription
         return;
     }
 
@@ -680,26 +807,29 @@ void KfxApiTool::removeSubscribedEvent(const QString &event)
 
 void KfxApiTool::handleServerApiSubmitted(const QString &text)
 {
-    appendLog("Connecting to " + text + "...");
-    statusLabel->setText("Connecting...");
-
     // Split the input text to get IP and port
     QStringList parts = text.split(':');
     if (parts.size() != 2) {
         appendLog("Invalid format. Use IP:Port");
-        statusLabel->setText("Not connected");
         return;
     }
 
+    // Get IP parts
     currentIP = parts[0];
     currentPort = parts[1].toInt();
+
+    // Show message that we are connecting
+    appendLog("Connecting to " + text + "...");
+    statusLabel->setText("Connecting...");
+
+    // Disable Connect GUI buttons
+    ui->actionConnect->setDisabled(true);
+    ui->actionConnectDefault->setDisabled(true);
 
     // Start the connection timer with a 5-second timeout
     connectionTimeoutTimer->start(5000);
 
-    ui->actionConnect->setDisabled(true);
-    ui->actionConnectDefault->setDisabled(true);
-
+    // Connect to API
     tcpSocket->connectToHost(currentIP, currentPort);
 }
 
@@ -708,10 +838,7 @@ void KfxApiTool::setConnectedGuiStatus()
     ui->actionConnect->setDisabled(true);
     ui->actionConnectDefault->setDisabled(true);
     ui->actionDisconnect->setDisabled(false);
-    ui->actionSubscribeVariable->setDisabled(false);
-    ui->actionSubscribeEvent->setDisabled(false);
     ui->actionSetVar->setDisabled(false);
-    ui->actionAddCommand->setDisabled(false);
 }
 
 void KfxApiTool::setDisconnectedGuiStatus()
@@ -719,37 +846,63 @@ void KfxApiTool::setDisconnectedGuiStatus()
     ui->actionConnect->setDisabled(false);
     ui->actionConnectDefault->setDisabled(false);
     ui->actionDisconnect->setDisabled(true);
-    ui->actionSubscribeVariable->setDisabled(true);
-    ui->actionSubscribeEvent->setDisabled(true);
     ui->actionSetVar->setDisabled(true);
-    ui->actionAddCommand->setDisabled(true);
 }
 
 void KfxApiTool::onConnected()
 {
+    // Stop the timeout timer
+    connectionTimeoutTimer->stop();
 
+    // Show a message to the end user
     appendLog("Connected!");
+
+    // Update GUI
     statusLabel->setText("Connected to " + currentIP + ":" + QString::number(currentPort));
     setConnectedGuiStatus();
-    connectionTimeoutTimer->stop();
+
+    // If we should reconnect we need to remember this
     shouldReconnect = true;
 
-    // Subscribe to any subscribtions in the UI
+    // Subscribe to any variable subscriptions already in the UI
     for(SubscribedVariableWidget *widget: subbedVariableWidgetList)
     {
+        // Subscribe to the var on the API server
         subscribeToVariable(widget->player, widget->variable);
+
+        // This sleep fixes a condition where the underlying TCP socket
+        // tries to combine packets even if we don't want that
+        QThread::msleep(50);
+    }
+
+    // Subscribe to any event subscriptions already in the UI
+    for(SubscribedEventWidget *widget: subbedEventWidgetList)
+    {
+        // Subscribe to the var on the API server
+        subscribeToEvent(widget->event);
+
+        // This sleep fixes a condition where the underlying TCP socket
+        // tries to combine packets even if we don't want that
         QThread::msleep(50);
     }
 }
 
 void KfxApiTool::onDisconnected()
 {
-    appendLog("Disconnected");
-    statusLabel->setText("Not connected");
-    setDisconnectedGuiStatus();
+    // Stop a possible timeout timer
     connectionTimeoutTimer->stop();
 
+    // Show a message to the end user that we are disconnected
+    appendLog("Disconnected");
+
+    // Update the GUI
+    statusLabel->setText("Not connected");
+    setDisconnectedGuiStatus();
+
+    // Check if we need to reconnect automatically
     if(shouldReconnect && connectionReconnectTimer->isActive()){
+
+        // Only update the GUI here
         appendLog("Trying to reconnect...");
         statusLabel->setText("Trying to reconnect...");
     }
@@ -757,20 +910,35 @@ void KfxApiTool::onDisconnected()
 
 void KfxApiTool::disconnect()
 {
+    // Disable the auto reconnect when we chose to disconnect
     shouldReconnect = false;
+
+    // Check if we are connected
     if (tcpSocket->state() == QTcpSocket::ConnectedState) {
+
+        // Disconnect from the API
         tcpSocket->disconnectFromHost();
     }
 }
 
 void KfxApiTool::onConnectionTimeout()
 {
+    // Check if we are connected yet
     if (tcpSocket->state() != QTcpSocket::ConnectedState) {
-        tcpSocket->abort(); // Abort the connection attempt
+
+        // Abort the connection attempt
+        // This is done in case of a buggy connection keeping the connection attempt going
+        tcpSocket->abort();
+
+        // Stop the connection timeout timer
+        connectionTimeoutTimer->stop();
+
+        // Show message to end user
         appendLog("Connection timed out");
+
+        // Update the GUI
         statusLabel->setText("Not connected");
         setDisconnectedGuiStatus();
-        connectionTimeoutTimer->stop();
     }
 }
 
@@ -780,21 +948,23 @@ std::optional<QJsonObject> KfxApiTool::getJsonFromPacket(QByteArray data)
     QJsonParseError parseError;
     QJsonDocument jsonDoc = QJsonDocument::fromJson(data, &parseError);
 
-    if (parseError.error == QJsonParseError::NoError) {
-        if (jsonDoc.isObject()) {
-            return jsonDoc.object();
-        } else {
-            qDebug() << "Received data is not in JSON format";
-            appendLog("Invalid data in packet");
-        }
-    } else {
-        qDebug() << "JSON parse error:" << parseError.errorString();
-        appendLog("JSON parse error");
-
-        qDebug() << "***" << data << "***";
+    // Check if there was a parse error
+    if (parseError.error != QJsonParseError::NoError) {
+        qDebug() << "JSON parse error: " << parseError.errorString();
+        qDebug() << "JSON parse data: " << data;
+        appendLog("JSON parse error in received API data");
+        return std::nullopt;
     }
 
-    return std::nullopt;
+    // Make sure the received JSON is an object
+    if (jsonDoc.isObject() == false) {
+        qDebug() << "Received data is not a JSON object";
+        appendLog("Received invalid data from the API");
+        return std::nullopt;
+    }
+
+    // Return the object
+    return jsonDoc.object();
 }
 
 void KfxApiTool::onReadyRead()
@@ -838,10 +1008,13 @@ void KfxApiTool::onReadyRead()
 // Method to send data to the server
 void KfxApiTool::sendData(const QByteArray &data)
 {
+    // Make sure we are connected
     if (tcpSocket->state() == QTcpSocket::ConnectedState) {
         qDebug() << data;
 
-         // Send data and try to flush
+        // Send data and try to flush
+        // For some reason the flush does not clear the buffer,
+        // which means that some messages are combined in a packet
         tcpSocket->write(data);
         tcpSocket->flush();
 
@@ -879,28 +1052,19 @@ void KfxApiTool::handleReceivedJson(const QJsonObject &jsonObject)
         QString variable = varObject["name"].toString();
         int value = varObject["value"].toInt();
 
-        // Check if there is a widget for this var
+        // Make sure there is a widget for this var
         SubscribedVariableWidget *widget = findSubscribedVariableWidget(player, variable);
-        if(widget != nullptr){
+        if(widget == nullptr){
+            qDebug() << "Received a VAR_UPDATE but widget does not exist for " << player << " : " << variable;
+            return;
+        }
 
-            // Update the widget
-            widget->update(value);
+        // Update the widget
+        widget->update(value);
 
-            // Log this if it wasn't a game turn update
-            if(variable != "GAME_TURN"){
-                appendLog("Var update: " + playerToHtml(player) + " : " + variable + " -> " + QString::number(value));
-            }
-
-        } else {
-
-            // Create a new widget
-            // This can happen when we connect to a game that already has subscribed variables
-            SubscribedVariableWidget *widget = new SubscribedVariableWidget(nullptr, player, variable, value);
-            connect(widget, &SubscribedVariableWidget::removeSubbedVariable, this, &KfxApiTool::removeSubscribedVariable);
-            connect(widget, &SubscribedVariableWidget::editSubbedVariable, this, &KfxApiTool::editSubscribedVariable);
-            areaVarSubsScrollLayout->addWidget(widget);
-            subbedVariableWidgetList.append(widget);
-            appendLog("Pre-subscribed variable found: " + player + " : " + variable + " -> " + QString::number(value));
+        // Log this if it wasn't a game turn update
+        if(variable != "GAME_TURN"){
+            appendLog("Var update: " + playerToHtml(player) + " : " + variable + " -> " + QString::number(value));
         }
     }
 }
@@ -931,4 +1095,242 @@ void KfxApiTool::removeActionCallback(int id)
     if (actionCallbackMap.contains(id)) {
         actionCallbackMap.remove(id);
     }
+}
+
+void KfxApiTool::savePreset()
+{
+    QString filePath = QFileDialog::getSaveFileName(this, tr("Save Preset"), "", tr("Preset Files (*.api);;All Files (*)"));
+    if (!filePath.isEmpty()) {
+        savePresetToFile(filePath);
+    }
+}
+
+void KfxApiTool::loadPreset()
+{
+    QString filePath = QFileDialog::getOpenFileName(this, tr("Load Preset"), "", tr("Preset Files (*.api);;All Files (*)"));
+    if (!filePath.isEmpty()) {
+        loadPresetFromFile(filePath);
+    }
+}
+
+void KfxApiTool::savePresetToFile(const QString &filePath)
+{
+    // JSON object variables
+    QJsonObject jsonObject;
+    QJsonArray subscriptions;
+    QJsonArray commands;
+
+    // Loop through each item in the scroll area
+    for (int i = 0; i < areaVarSubsScrollLayout->count(); ++i) {
+
+        // Get widget in scroll area
+        QWidget *widget = areaVarSubsScrollLayout->itemAt(i)->widget();
+        if (!widget) {
+            continue;
+        }
+
+        // Handle variable subscription
+        SubscribedVariableWidget *subVarWidget = qobject_cast<SubscribedVariableWidget*>(widget);
+        if (subVarWidget) {
+            QJsonObject subVarJsonObject;
+            subVarJsonObject["player"] = subVarWidget->player;
+            subVarJsonObject["variable"] = subVarWidget->variable;
+            subscriptions.append(subVarJsonObject);
+            continue;
+        }
+
+        // Handle event subscription
+        SubscribedEventWidget *subEventWidget = qobject_cast<SubscribedEventWidget*>(widget);
+        if (subEventWidget) {
+            QJsonObject subEventJsonObject;
+            subEventJsonObject["event"] = subEventWidget->event;
+            subscriptions.append(subEventJsonObject);
+            continue;
+        }
+    }
+
+    // Loop through each item in the scroll area
+    for (int i = 0; i < areaCommandsScrollLayout->count(); ++i) {
+
+        // Get widget in scroll area
+        QWidget *widget = areaCommandsScrollLayout->itemAt(i)->widget();
+        if (!widget) {
+            continue;
+        }
+
+        // Handle command
+        CommandWidget *commandWidget = qobject_cast<CommandWidget*>(widget);
+        if (commandWidget) {
+            QJsonObject commandJsonObject;
+            commandJsonObject["name"] = commandWidget->name;
+            commandJsonObject["type"] = commandWidget->type;
+            commandJsonObject["command"] = commandWidget->command;
+            commands.append(commandJsonObject);
+            continue;
+        }
+    }
+
+    // Add stuff to main JSON object
+    jsonObject.insert("subscriptions", subscriptions);
+    jsonObject.insert("commands", commands);
+
+    // Convert JSON to string
+    QJsonDocument doc(jsonObject);
+    QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
+
+    // Open the file for saving
+    QFile file(filePath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text) == false) {
+        appendLog("Failed to create and open file for saving");
+        QMessageBox::warning(this, "KfxApiTool", "Failed to create and open file for saving");
+
+        return;
+    }
+
+    // Write JSON to file
+    file.write(jsonData);
+
+    // Close the file
+    file.close();
+
+    // Show success to end user
+    appendLog("Preset saved! -> " + filePath);
+    QMessageBox::information(this, "KfxApiTool", "Preset saved!");
+}
+
+void KfxApiTool::loadPresetFromFile(const QString &filePath)
+{
+    // Open the file for reading
+    QFile file(filePath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text) == false) {
+
+        // Show error message to user
+        appendLog("Failed to open file for reading");
+        QMessageBox::warning(this, "KfxApiTool", "Failed to open file for reading");
+
+        return;
+    }
+
+    // Read the file
+    QByteArray data = file.readAll();
+
+    // Attempt to parse data as JSON
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(data, &parseError);
+
+    // Close the file
+    file.close();
+
+    // Check if there was a parse error
+    if (parseError.error != QJsonParseError::NoError) {
+        qDebug() << "JSON parse error: " << parseError.errorString();
+        qDebug() << "JSON parse data: " << data;
+        appendLog("JSON parse error in loaded preset");
+        QMessageBox::warning(this, "KfxApiTool", "Invalid preset file.");
+        return;
+    }
+
+    // Make sure the received JSON is an object
+    if (jsonDoc.isObject() == false) {
+        qDebug() << "Data in preset file is not a JSON object";
+        appendLog("Data in preset file is not a JSON object");
+        QMessageBox::warning(this, "KfxApiTool", "Invalid preset file.");
+        return;
+    }
+
+    // Clear the UI
+    // Loop through each item in the scroll area and delete them
+    for (int i = 0; i < areaCommandsScrollLayout->count(); i++) {
+        QWidget *widget = areaCommandsScrollLayout->itemAt(i)->widget();
+        if (widget != nullptr) {
+            widget->deleteLater();
+        }
+    }
+    for (int i = 0; i < areaVarSubsScrollLayout->count(); i++) {
+        QWidget *widget = areaVarSubsScrollLayout->itemAt(i)->widget();
+        if (widget != nullptr) {
+            widget->deleteLater();
+        }
+    }
+
+    // Clear the subscription lists
+    subbedEventWidgetList.clear();
+    subbedVariableWidgetList.clear();
+
+    // Get the JSON object
+    QJsonObject jsonObject = jsonDoc.object();
+
+    // Load the subscriptions
+    if(jsonObject.contains("subscriptions") && jsonObject["subscriptions"].isArray())
+    {
+        for (const QJsonValue &value : jsonObject["subscriptions"].toArray()) {
+            if (value.isObject() == false) {
+                continue;
+            }
+
+            QJsonObject subObject = value.toObject();
+
+            if(subObject.contains("event") && subObject["event"].isString())
+            {
+                addSubscribedEventWidget(subObject["event"].toString());
+                continue;
+            }
+
+            if(subObject.contains("player") && subObject["player"].isString()
+                && subObject.contains("variable") && subObject["variable"].isString())
+            {
+                addSubscribedVariableWidget(subObject["player"].toString(), subObject["variable"].toString(), -1);
+                continue;
+            }
+        }
+    }
+
+    // Load the commands
+    if(jsonObject.contains("commands") && jsonObject["commands"].isArray())
+    {
+        for (const QJsonValue &value : jsonObject["commands"].toArray()) {
+            if (value.isObject() == false) {
+                continue;
+            }
+
+            QJsonObject subObject = value.toObject();
+
+            if(subObject.contains("name") && subObject["name"].isString()
+                && subObject.contains("type") && subObject["type"].isDouble()
+                && subObject.contains("command") && subObject["command"].isString())
+            {
+                addCommandWidget(subObject["name"].toString(), subObject["type"].toDouble(), subObject["command"].toString());
+                continue;
+            }
+        }
+    }
+
+    // Show success to end user
+    // No need for a messagebox here as they'll see the GUI update
+    appendLog("Preset loaded! -> " + filePath);
+    QMessageBox::information(this, "KfxApiTool", "Preset loaded!");
+}
+
+
+
+void KfxApiTool::addSubscribedVariableWidget(const QString &player, const QString &variable, int value){
+    SubscribedVariableWidget *widget = new SubscribedVariableWidget(nullptr, player, variable, value);
+    connect(widget, &SubscribedVariableWidget::removeSubbedVariable, this, &KfxApiTool::removeSubscribedVariable);
+    connect(widget, &SubscribedVariableWidget::editSubbedVariable, this, &KfxApiTool::editSubscribedVariable);
+    areaVarSubsScrollLayout->addWidget(widget);
+    subbedVariableWidgetList.append(widget);
+}
+
+void KfxApiTool::addSubscribedEventWidget(const QString &event){
+    SubscribedEventWidget *widget = new SubscribedEventWidget(nullptr, event);
+    connect(widget, &SubscribedEventWidget::removeSubbedEvent, this, &KfxApiTool::removeSubscribedEvent);
+    areaVarSubsScrollLayout->addWidget(widget);
+    subbedEventWidgetList.append(widget);
+}
+
+void KfxApiTool::addCommandWidget(const QString &name, int type, const QString &command){
+    CommandWidget *widget = new CommandWidget(nullptr, name, type, command);
+    connect(widget, &CommandWidget::executeCommand, this, &KfxApiTool::handleCommandExecuted);
+    connect(widget, &CommandWidget::editCommand, this, &KfxApiTool::openEditCommandDialog);
+    areaCommandsScrollLayout->addWidget(widget);
 }

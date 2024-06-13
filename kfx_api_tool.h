@@ -14,6 +14,10 @@
 #include <QMap>
 #include <QOperatingSystemVersion>
 #include <QDesktopServices>
+#include <QFileDialog>
+#include <QFile>
+#include <QTextStream>
+#include <QJsonArray>
 
 #include "subscribed_variable_widget.h"
 #include "subscribed_event_widget.h"
@@ -67,6 +71,10 @@ private slots:
     void onConnectionTimeout();
     void disconnect();
     void onReconnectTimer();
+
+    void savePreset();
+    void loadPreset();
+
 private:
     int currentAckId;
     Ui::KfxApiTool *ui;
@@ -88,12 +96,13 @@ private:
     void subscribeToVariable(const QString &player, const QString &variable);
     QList<SubscribedVariableWidget*> subbedVariableWidgetList;
     SubscribedVariableWidget* findSubscribedVariableWidget(const QString &player, const QString &variable);
+    void removeSubscribedVariableWidget(SubscribedVariableWidget *widget);
 
     void subscribeToEvent(const QString &event);
     QList<SubscribedEventWidget*> subbedEventWidgetList;
     SubscribedEventWidget* findSubscribedEventWidget(const QString &event);
+    void removeSubscribedEventWidget(SubscribedEventWidget *widget);
 
-    QList<CommandWidget*> commandWidgetList;
     void handleCommandExecutedReturn(const QJsonObject &request, const QJsonObject &response);
 
     void appendLog(const QString string);
@@ -118,11 +127,18 @@ private:
     void removeActionCallback(int id);
     QMap<int, ActionCallbackInfo> actionCallbackMap;
 
+    void addSubscribedVariableWidget(const QString &player, const QString &variable, int value);
+    void addSubscribedEventWidget(const QString &event);
+    void addCommandWidget(const QString &name, int type, const QString &command);
+
     void handleSubscribeToVariableReturn(const QJsonObject &request, const QJsonObject &response);
     void handleSubscribeToVariableReadReturn(const QJsonObject &request, const QJsonObject &response);
     void handleSubscribeToEventReturn(const QJsonObject &request, const QJsonObject &response);
     void handleSetVariableReturn(const QJsonObject &request, const QJsonObject &response);
-    void handleUnsubscribeVariableReturn(const QJsonObject &request, const QJsonObject &response);    
+    void handleUnsubscribeVariableReturn(const QJsonObject &request, const QJsonObject &response);
     void handleUnsubscribeEventReturn(const QJsonObject &request, const QJsonObject &response);
+
+    void savePresetToFile(const QString &filePath);
+    void loadPresetFromFile(const QString &filePath);
 };
 #endif // KFX_API_TOOL_H

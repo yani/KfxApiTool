@@ -38,3 +38,8 @@ SubscribedEventWidget::SubscribedEventWidget(QWidget *parent, const QString &eve
     // Show the widget
     this->show();
 }
+
+SubscribedEventWidget::~SubscribedEventWidget()
+{
+    delete layout();
+}

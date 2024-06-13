@@ -14,7 +14,7 @@ SubscribedVariableWidget::SubscribedVariableWidget(QWidget *parent, const QStrin
     value(value)
 {
     // Create identifier label
-    QLabel *label = new QLabel(this);
+    label = new QLabel(this);
     label->setText(this->player + " : " + this->variable);
     label->show();
 
@@ -78,5 +78,22 @@ SubscribedVariableWidget::SubscribedVariableWidget(QWidget *parent, const QStrin
 
 void SubscribedVariableWidget::update(const int value)
 {
+    this->value = value;
     valueInput->setText(QString::number(value));
+}
+
+SubscribedVariableWidget::~SubscribedVariableWidget()
+{
+    delete layout();
+}
+
+void SubscribedVariableWidget::setValidStatus(bool isValid)
+{
+    if(isValid) {
+        // Normal text if valid
+        label->setText(this->player + " : " + this->variable);
+    } else {
+        // Set striketrough text
+        label->setText("<span style=\"text-decoration:line-through\">" + this->player + " : " + this->variable + "</span>");
+    }
 }

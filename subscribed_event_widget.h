@@ -12,6 +12,8 @@ class SubscribedEventWidget : public QWidget
 
 public:
     explicit SubscribedEventWidget(QWidget *parent = nullptr, const QString &event = nullptr);
+    ~SubscribedEventWidget();
+
     QString event;
 
 signals:
