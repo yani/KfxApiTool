@@ -104,8 +104,6 @@ private:
     SubscribedEventWidget* findSubscribedEventWidget(const QString &event);
     void removeSubscribedEventWidget(SubscribedEventWidget *widget);
 
-    void handleCommandExecutedReturn(const QJsonObject &request, const QJsonObject &response);
-
     void appendLog(const QString string);
     void updateStatusLabel(const QString string);
 
@@ -138,6 +136,7 @@ private:
     void handleSetVariableReturn(const QJsonObject &request, const QJsonObject &response);
     void handleUnsubscribeVariableReturn(const QJsonObject &request, const QJsonObject &response);
     void handleUnsubscribeEventReturn(const QJsonObject &request, const QJsonObject &response);
+    void handleCommandExecutedReturn(const QJsonObject &request, const QJsonObject &response);
 
     QString getLastPresetDirectory();
     void setLastPresetDirectory(const QString &dirPath);

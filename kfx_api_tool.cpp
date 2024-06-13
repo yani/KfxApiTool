@@ -399,7 +399,8 @@ void KfxApiTool::handleCommandExecutedReturn(const QJsonObject &request, const Q
     }
 
     // Show message to end user
-    appendLog("Command executed!");
+    // 'command_name' was added to request
+    appendLog("Command executed: " + request["command_name"].toString());
 }
 
 void KfxApiTool::handleSubscribeToVariableReadReturn(const QJsonObject &request, const QJsonObject &response)
@@ -680,6 +681,7 @@ void KfxApiTool::handleCommandExecuted(const QString &name, int type, const QStr
     jsonSubObject["ack"] = currentAckId;
     jsonSubObject["action"] = action;
     jsonSubObject["command"] = command;
+    jsonSubObject["command_name"] = name;
 
     // Create a callback to handle the response
     addActionCallback(currentAckId, [this](const QJsonObject& request, const QJsonObject& response) {
