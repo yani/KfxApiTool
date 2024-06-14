@@ -44,7 +44,7 @@ SubscribedVariableWidget::SubscribedVariableWidget(QWidget *parent, const QStrin
     layout->addWidget(removeButton);
 
     // Set margins for the layout
-    layout->setContentsMargins(3, 3, 3, 3); // Left, Top, Right, Bottom
+    layout->setContentsMargins(3, 1, 3, 1); // Left, Top, Right, Bottom
 
     // Set the layout of this widget
     setLayout(layout);
