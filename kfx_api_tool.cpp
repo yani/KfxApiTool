@@ -9,6 +9,7 @@
 #include "edit_command_dialog.h"
 #include "set_variable_dialog.h"
 
+#define API_BUFFER_SIZE 4096
 
 KfxApiTool::KfxApiTool(QWidget *parent)
     : QMainWindow(parent)
@@ -867,6 +868,10 @@ void KfxApiTool::subToAllInWidgetList()
 
 void KfxApiTool::onConnected()
 {
+    // Set the max buffer sizes
+    tcpSocket->setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, API_BUFFER_SIZE);
+    tcpSocket->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, API_BUFFER_SIZE);
+
     // Stop the timeout timer
     connectionTimeoutTimer->stop();
 
