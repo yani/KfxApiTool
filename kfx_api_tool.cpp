@@ -173,7 +173,7 @@ void KfxApiTool::appendLog(const QString string)
 
 void KfxApiTool::openAboutDialog()
 {
-    AboutDialog *dialog = new AboutDialog();
+    AboutDialog *dialog = new AboutDialog(this);
     dialog->exec();
 }
 
