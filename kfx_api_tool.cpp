@@ -1500,6 +1500,8 @@ void KfxApiTool::loadMapfileVariablesFromFile(QString &filePath)
 
     // Sort the list of variables
     std::sort(foundVariables.begin(), foundVariables.end(), [](const QPair<QString, QString> &a, const QPair<QString, QString> &b) {
+
+        // If these are  the same two players we will order the variables
         if (a.first == b.first) {
 
             // Prioritize FLAGxx and TIMERxx at the top within each player group
@@ -1508,9 +1510,11 @@ void KfxApiTool::loadMapfileVariablesFromFile(QString &filePath)
             if (aIsSpecial && !bIsSpecial) return true;
             if (!aIsSpecial && bIsSpecial) return false;
 
+            // Order variable
             return a.second < b.second;
         }
 
+        // Order players
         return a.first < b.first;
     });
 
@@ -1528,10 +1532,8 @@ void KfxApiTool::loadMapfileVariablesFromFile(QString &filePath)
             // Add the variable to our list
             addSubscribedVariableWidget(player, variable, -1);
 
-            // Check if we are connected to the API
-            if(tcpSocket->state() == QAbstractSocket::ConnectedState)
-            {
-                // Subscribe to the variable on the API
+            // Instantly subscribe to the variable on the API if we are connected
+            if(tcpSocket->state() == QAbstractSocket::ConnectedState) {
                 subscribeToVariable(player, variable);
             }
 
@@ -1539,8 +1541,8 @@ void KfxApiTool::loadMapfileVariablesFromFile(QString &filePath)
         }
     }
 
-    if(variablesAddedCount == 0)
-    {
+    // Show message to user
+    if(variablesAddedCount == 0) {
         QMessageBox::information(this, "KfxApiTool", "No variables added");
     } else {
         QMessageBox::information(this, "KfxApiTool", "Mapfile loaded and " + QString::number(variablesAddedCount) + " variables added");
