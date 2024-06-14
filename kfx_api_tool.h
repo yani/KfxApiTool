@@ -139,16 +139,10 @@ private:
     void handleUnsubscribeEventReturn(const QJsonObject &request, const QJsonObject &response);
     void handleCommandExecutedReturn(const QJsonObject &request, const QJsonObject &response);
 
-    QString getLastPresetDirectory();
-    void setLastPresetDirectory(const QString &dirPath);
-
     void savePresetToFile(const QString &filePath);
     void loadPresetFromFile(const QString &filePath);
 
     void subToAllInWidgetList();
-
-    QString getLastMapfileDirectory();
-    void setLastMapfileDirectory(const QString &dirPath);
 
     void loadMapfileVariables();
     void loadMapfileVariablesFromFile(QString &filePath);

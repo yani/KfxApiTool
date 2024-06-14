@@ -1102,8 +1102,10 @@ void KfxApiTool::removeActionCallback(int id)
 
 void KfxApiTool::savePreset()
 {
+    QSettings settings;
+
     // Open save file dialog
-    QString lastPresetDir = getLastPresetDirectory();
+    QString lastPresetDir = settings.value("lastPresetDir").toString();
     QString filePath = QFileDialog::getSaveFileName(this, tr("Save Preset"), lastPresetDir, tr("Preset Files (*.api);;All Files (*)"));
     if (!filePath.isEmpty()) {
 
@@ -1120,14 +1122,16 @@ void KfxApiTool::savePreset()
         savePresetToFile(filePath);
 
         // Save the directory for next time
-        setLastPresetDirectory(fileInfo.path());
+        settings.setValue("lastPresetDir", fileInfo.path());
     }
 }
 
 void KfxApiTool::loadPreset()
 {
+    QSettings settings;
+
     // Open load file dialog
-    QString lastPresetDir = getLastPresetDirectory();
+    QString lastPresetDir = settings.value("lastPresetDir").toString();
     QString filePath = QFileDialog::getOpenFileName(this, tr("Load Preset"), lastPresetDir, tr("Preset Files (*.api);;All Files (*)"));
     if (!filePath.isEmpty()) {
 
@@ -1136,7 +1140,7 @@ void KfxApiTool::loadPreset()
 
         // Save the directory for next time
         QFileInfo fileInfo(filePath);
-        setLastPresetDirectory(fileInfo.path());
+        settings.setValue("lastPresetDir", fileInfo.path());
     }
 }
 
@@ -1378,26 +1382,6 @@ void KfxApiTool::loadPresetFromFile(const QString &filePath)
     QMessageBox::information(this, "KfxApiTool", "Preset loaded!");
 }
 
-QString KfxApiTool::getLastPresetDirectory() {
-    QSettings settings;
-    return settings.value("lastPresetDir").toString();
-}
-
-void KfxApiTool::setLastPresetDirectory(const QString &dirPath) {
-    QSettings settings;
-    settings.setValue("lastPresetDir", dirPath);
-}
-
-QString KfxApiTool::getLastMapfileDirectory() {
-    QSettings settings;
-    return settings.value("lastMapfileDir").toString();
-}
-
-void KfxApiTool::setLastMapfileDirectory(const QString &dirPath) {
-    QSettings settings;
-    settings.setValue("lastMapfileDir", dirPath);
-}
-
 void KfxApiTool::addSubscribedVariableWidget(const QString &player, const QString &variable, int value){
     SubscribedVariableWidget *widget = new SubscribedVariableWidget(nullptr, player, variable, value);
     connect(widget, &SubscribedVariableWidget::removeSubbedVariable, this, &KfxApiTool::removeSubscribedVariable);
@@ -1422,8 +1406,10 @@ void KfxApiTool::addCommandWidget(const QString &name, int type, const QString &
 
 void KfxApiTool::loadMapfileVariables()
 {
+    QSettings settings;
+
     // Open load file dialog
-    QString lastMapfileDir = getLastMapfileDirectory();
+    QString lastMapfileDir = settings.value("lastMapfileDir").toString();
     QString filePath = QFileDialog::getOpenFileName(this, tr("Load mapfile"), lastMapfileDir, tr("Map script Files (*.txt);;All Files (*)"));
     if (!filePath.isEmpty()) {
 
@@ -1432,7 +1418,7 @@ void KfxApiTool::loadMapfileVariables()
 
         // Save the directory for next time
         QFileInfo fileInfo(filePath);
-        setLastMapfileDirectory(fileInfo.path());
+        settings.setValue("lastMapfileDir", fileInfo.path());
     }
 }
 
