@@ -38,15 +38,16 @@ KfxApiTool::KfxApiTool(QWidget *parent)
     connect(ui->actionAutoReconnect, &QAction::toggled, this, &KfxApiTool::toggleReconnect);
     connect(ui->actionDisconnect, &QAction::triggered, this, &KfxApiTool::disconnect);
 
-    // Menu: COMMAND
-    connect(ui->actionAddCommand, &QAction::triggered, this, &KfxApiTool::openAddCommandDialog);
-
     // Menu: VARIABLE
     connect(ui->actionSetVar, &QAction::triggered, this, &KfxApiTool::openSetVariableDialog);
     connect(ui->actionSubscribeVariable, &QAction::triggered, this, &KfxApiTool::openSubscribeVariableDialog);
+    connect(ui->actionLoadMapfileVariables, &QAction::triggered, this, &KfxApiTool::loadMapfileVariables);
 
     // Menu: EVENT
     connect(ui->actionSubscribeEvent, &QAction::triggered, this, &KfxApiTool::openSubscribeEventDialog);
+
+    // Menu: COMMAND
+    connect(ui->actionAddCommand, &QAction::triggered, this, &KfxApiTool::openAddCommandDialog);
 
     // Menu: PRESET
     connect(ui->actionSavePreset, &QAction::triggered, this, &KfxApiTool::savePreset);
@@ -1387,6 +1388,16 @@ void KfxApiTool::setLastPresetDirectory(const QString &dirPath) {
     settings.setValue("lastPresetDir", dirPath);
 }
 
+QString KfxApiTool::getLastMapfileDirectory() {
+    QSettings settings;
+    return settings.value("lastMapfileDir").toString();
+}
+
+void KfxApiTool::setLastMapfileDirectory(const QString &dirPath) {
+    QSettings settings;
+    settings.setValue("lastMapfileDir", dirPath);
+}
+
 void KfxApiTool::addSubscribedVariableWidget(const QString &player, const QString &variable, int value){
     SubscribedVariableWidget *widget = new SubscribedVariableWidget(nullptr, player, variable, value);
     connect(widget, &SubscribedVariableWidget::removeSubbedVariable, this, &KfxApiTool::removeSubscribedVariable);
@@ -1407,4 +1418,131 @@ void KfxApiTool::addCommandWidget(const QString &name, int type, const QString &
     connect(widget, &CommandWidget::executeCommand, this, &KfxApiTool::handleCommandExecuted);
     connect(widget, &CommandWidget::editCommand, this, &KfxApiTool::openEditCommandDialog);
     areaCommandsScrollLayout->addWidget(widget);
+}
+
+void KfxApiTool::loadMapfileVariables()
+{
+    // Open load file dialog
+    QString lastMapfileDir = getLastMapfileDirectory();
+    QString filePath = QFileDialog::getOpenFileName(this, tr("Load mapfile"), lastMapfileDir, tr("Map script Files (*.txt);;All Files (*)"));
+    if (!filePath.isEmpty()) {
+
+        // Handle the map file
+        loadMapfileVariablesFromFile(filePath);
+
+        // Save the directory for next time
+        QFileInfo fileInfo(filePath);
+        setLastMapfileDirectory(fileInfo.path());
+    }
+}
+
+void KfxApiTool::loadMapfileVariablesFromFile(QString &filePath)
+{
+    // Open the file for reading
+    QFile file(filePath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text) == false) {
+
+        // Show error message to user
+        appendLog("Failed to open file for reading");
+        QMessageBox::warning(this, "KfxApiTool", "Failed to open file for reading");
+
+        return;
+    }
+
+    // Create a list for the variables
+    QList<QPair<QString, QString>> foundVariables;
+
+    // Define the regex patterns
+    QRegularExpression pattern1("IF\\((PLAYER(?:[0-9]+|\\_GOOD|\\_NEUTRAL)),([a-zA-Z0-9\\_]+)");
+    QRegularExpression pattern2("(PLAYER(?:[0-9]+|_GOOD|_NEUTRAL)),((?:TIMER[0-9]+|FLAG[0-9]+|CAMPAIGN_FLAG[0-9]+|BOX[0-9+]_ACTIVATED))");
+
+    // Create list of patterns
+    const QList<QRegularExpression> patterns = { pattern1, pattern2 };
+
+    // Loop trough all lines in the file
+    QTextStream stream(&file);
+    for (QString line = stream.readLine(); !line.isNull(); line = stream.readLine()) {
+
+        // Simplify the line (remove whitespaces, etc)
+        line = line.simplified();
+
+        // Collect all matches from all patterns
+        QList<QRegularExpressionMatch> matches;
+
+        // Loop through each pattern
+        for (const QRegularExpression &pattern : patterns)
+        {
+            // Get matches for the current pattern
+            for (QRegularExpressionMatchIterator it = pattern.globalMatch(line); it.hasNext(); )
+            {
+                matches.append(it.next());
+            }
+        }
+
+        // Loop trough all pattern 2 matches
+        for (const QRegularExpressionMatch &match : matches) {
+
+            // Create the variable pair
+            QPair<QString, QString> pair(match.captured(1), match.captured(2));
+
+            // Check if the variable pair is not in the list yet
+            if (!foundVariables.contains(pair))
+            {
+                // Add this variable to the list
+                foundVariables.append(pair);
+            }
+        }
+
+    }
+
+    // Close the file
+    file.close();
+
+    // Sort the list of variables
+    std::sort(foundVariables.begin(), foundVariables.end(), [](const QPair<QString, QString> &a, const QPair<QString, QString> &b) {
+        if (a.first == b.first) {
+
+            // Prioritize FLAGxx and TIMERxx at the top within each player group
+            bool aIsSpecial = a.second.startsWith("FLAG") || a.second.startsWith("TIMER");
+            bool bIsSpecial = b.second.startsWith("FLAG") || b.second.startsWith("TIMER");
+            if (aIsSpecial && !bIsSpecial) return true;
+            if (!aIsSpecial && bIsSpecial) return false;
+
+            return a.second < b.second;
+        }
+
+        return a.first < b.first;
+    });
+
+    int variablesAddedCount = 0;
+
+    // Handle the whole list
+    for (const auto &pair : foundVariables)
+    {
+        QString player = pair.first;
+        QString variable = pair.second;
+
+        // Check if this variable does not exist in our list yet
+        if(findSubscribedVariableWidget(player, variable) == nullptr)
+        {
+            // Add the variable to our list
+            addSubscribedVariableWidget(player, variable, -1);
+
+            // Check if we are connected to the API
+            if(tcpSocket->state() == QAbstractSocket::ConnectedState)
+            {
+                // Subscribe to the variable on the API
+                subscribeToVariable(player, variable);
+            }
+
+            variablesAddedCount++;
+        }
+    }
+
+    if(variablesAddedCount == 0)
+    {
+        QMessageBox::information(this, "KfxApiTool", "No variables added");
+    } else {
+        QMessageBox::information(this, "KfxApiTool", "Mapfile loaded and " + QString::number(variablesAddedCount) + " variables added");
+    }
 }

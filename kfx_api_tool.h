@@ -19,6 +19,7 @@
 #include <QTextStream>
 #include <QJsonArray>
 #include <QSettings>
+#include <QRegularExpression>
 
 #include "subscribed_variable_widget.h"
 #include "subscribed_event_widget.h"
@@ -145,5 +146,11 @@ private:
     void loadPresetFromFile(const QString &filePath);
 
     void subToAllInWidgetList();
+
+    QString getLastMapfileDirectory();
+    void setLastMapfileDirectory(const QString &dirPath);
+
+    void loadMapfileVariables();
+    void loadMapfileVariablesFromFile(QString &filePath);
 };
 #endif // KFX_API_TOOL_H

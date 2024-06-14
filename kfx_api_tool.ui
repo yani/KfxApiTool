@@ -146,6 +146,7 @@
     </property>
     <addaction name="actionSetVar"/>
     <addaction name="actionSubscribeVariable"/>
+    <addaction name="actionLoadMapfileVariables"/>
    </widget>
    <widget class="QMenu" name="menuCommand">
     <property name="title">
@@ -253,6 +254,11 @@
   <action name="actionSavePreset">
    <property name="text">
     <string>Save</string>
+   </property>
+  </action>
+  <action name="actionLoadMapfileVariables">
+   <property name="text">
+    <string>Load mapfile</string>
    </property>
   </action>
  </widget>
