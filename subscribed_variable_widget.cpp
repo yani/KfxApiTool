@@ -52,19 +52,27 @@ SubscribedVariableWidget::SubscribedVariableWidget(QWidget *parent, const QStrin
     // Ensure this widget expands horizontally
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-    // Create contexts menu for the edit function
-    // We make 2 because the input field needs its own one
+    // Set the context menu policies
+    setContextMenuPolicy(Qt::CustomContextMenu);
+    valueInput->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    // Create a context menu for right click
     QMenu *contextMenu = new QMenu(this);
+
+    // Create context menu option for the edit function
     QAction *editAction = contextMenu->addAction("Set variable");
     connect(editAction, &QAction::triggered, this, [this]() {
         emit editSubbedVariable(this->player, this->variable, this->value);
     });
 
-    // Set the context menu policies
-    setContextMenuPolicy(Qt::CustomContextMenu);
-    valueInput->setContextMenuPolicy(Qt::CustomContextMenu);
+    // Create context menu option for the unsub function
+    QAction *unsubAction = contextMenu->addAction("Unsubscribe");
+    connect(unsubAction, &QAction::triggered, this, [this]() {
+        emit removeSubbedVariable(this->player, this->variable);
+    });
 
-    // Connect the events
+    // Connect the context menu events
+    // We connect both the widget and the value input as they are different
     connect(this, &QWidget::customContextMenuRequested, this, [this, contextMenu](const QPoint &pos) {
         contextMenu->exec(mapToGlobal(pos));
     });
