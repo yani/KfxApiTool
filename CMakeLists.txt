@@ -35,6 +35,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         edit_command_dialog.h edit_command_dialog.cpp edit_command_dialog.ui
         set_variable_dialog.h set_variable_dialog.cpp set_variable_dialog.ui
         q_kfx_set_variable_completer.h
+        version.h
 
     )
 # Define target properties for Android with Qt 6 as:
