@@ -8,6 +8,7 @@
 #include "add_command_dialog.h"
 #include "edit_command_dialog.h"
 #include "set_variable_dialog.h"
+#include "version.h"
 
 #define API_BUFFER_SIZE 4096
 
@@ -59,6 +60,7 @@ KfxApiTool::KfxApiTool(QWidget *parent)
     connect(ui->actionStayOnTop, &QAction::toggled, this, &KfxApiTool::toggleStayOnTop);
 
     // Menu: ABOUT
+    connect(ui->actionCheckForUpdate, &QAction::triggered, this, &KfxApiTool::checkForUpdate);
     connect(ui->actionAbout, &QAction::triggered, this, &KfxApiTool::openAboutDialog);
     connect(ui->actionKeeperFxWebsite, &QAction::triggered, this, [this]() {
         QDesktopServices::openUrl(QUrl("https://keeperfx.net"));
@@ -237,6 +239,104 @@ void KfxApiTool::toggleReconnect(bool checked) {
     } else {
         connectionReconnectTimer->stop();
         appendLog("Automatic reconnect disabled");
+    }
+}
+
+void KfxApiTool::checkForUpdate()
+{
+    appendLog("Checking for KfxApiTool update...");
+    appendLog("Current version: " + QString(APP_VERSION));
+
+    // Create the network manager
+    QNetworkAccessManager networkManager;
+
+    // Create the request
+    QUrl url("https://keeperfx.net/api/v1/workshop/item/674");
+    QNetworkRequest request(url);
+
+    // Disable SSL verification
+    QSslConfiguration sslConfig = request.sslConfiguration();
+    sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
+    request.setSslConfiguration(sslConfig);
+
+    // Do the request
+    QNetworkReply *reply = networkManager.get(request);
+
+    // Event loop to wait for the request to complete
+    QEventLoop loop;
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+
+    // Check if the request was succesful
+    if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << "HTTP Request error: " << reply->errorString();
+        QMessageBox::warning(this, "KfxApiTool", "Failed to check for update");
+        appendLog("Failed to check for update");
+        return;
+    }
+
+    // Get JSON document and make sure it's valid
+    QByteArray responseData = reply->readAll();
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
+    if (jsonDoc.isNull() || !jsonDoc.isObject()) {
+        QMessageBox::warning(this, "KfxApiTool", "Invalid server response (No valid JSON)");
+        appendLog("Invalid server response (No valid JSON)");
+        return;
+    }
+
+    // Get JSON object
+    QJsonObject json = jsonDoc.object();
+
+    // Make sure its a valid workshop item
+    if(!json.contains("workshop_item")){
+        QMessageBox::warning(this, "KfxApiTool", "Invalid server response (No workshop item found)");
+        appendLog("Invalid server response (No workshop item found)");
+        return;
+    }
+
+    // Get the files array and make sure it has a file
+    QJsonArray filesArray = json["workshop_item"].toObject()["files"].toArray();
+    if(filesArray.isEmpty()){
+        QMessageBox::warning(this, "KfxApiTool", "Invalid server response (No files found)");
+        appendLog("Invalid server response (No files found)");
+        return;
+    }
+
+    // Get file object variables
+    QJsonObject fileObject = filesArray[0].toObject();
+    QString downloadUrl = fileObject["filename"].toString();
+    QString filename = fileObject["url"].toString();
+    QString timestamp = fileObject["timestamp"].toString();
+
+    // Get version from filename
+    QRegularExpression regex("-v([0-9]+\\.[0-9]+\\.[0-9]+)\\.");
+    QRegularExpressionMatch match = regex.match(filename);
+    if(match.hasMatch() == false){
+        QMessageBox::warning(this, "KfxApiTool", "Invalid server response (No valid version in filename)");
+        appendLog("Invalid server response (No valid version in filename)");
+        return;
+    }
+    QString latestVersion = match.captured(1);
+
+    // Check if version is different
+    if(latestVersion == QString(APP_VERSION)){
+        QMessageBox::information(this, "KfxApiTool", "Already on latest version!");
+        appendLog("Already on latest version");
+        return;
+    }
+
+    // Log
+    appendLog("New version found! -> " + latestVersion);
+
+    // Ask user if they want to open download page
+    QMessageBox::StandardButton answer;
+    answer = QMessageBox::question(this, "KfxApiTool", "New version found! -> " + latestVersion + "\n\nDo you want to open the webpage to download the new version?",
+                                  QMessageBox::Yes | QMessageBox::No);
+
+    // Check if the user clicked "Yes"
+    if (answer == QMessageBox::Yes) {
+        QUrl url("https://keeperfx.net/workshop/item/674");
+        QDesktopServices::openUrl(url);
     }
 }
 

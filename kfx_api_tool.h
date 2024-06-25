@@ -20,6 +20,10 @@
 #include <QJsonArray>
 #include <QSettings>
 #include <QRegularExpression>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QSslConfiguration>
 
 #include "subscribed_variable_widget.h"
 #include "subscribed_event_widget.h"
@@ -66,6 +70,8 @@ private slots:
 
     void openSetVariableDialog();
     void handleSetVarSubmitted(const QString &player, const QString &command, int value);
+
+    void checkForUpdate();
 
     void onConnected();
     void onDisconnected();

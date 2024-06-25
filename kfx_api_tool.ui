@@ -122,6 +122,7 @@
     <property name="title">
      <string>About</string>
     </property>
+    <addaction name="actionCheckForUpdate"/>
     <addaction name="actionKeeperFxWebsite"/>
     <addaction name="actionAbout"/>
    </widget>
@@ -259,6 +260,11 @@
   <action name="actionLoadMapfileVariables">
    <property name="text">
     <string>Load mapfile...</string>
+   </property>
+  </action>
+  <action name="actionCheckForUpdate">
+   <property name="text">
+    <string>Check for update</string>
    </property>
   </action>
  </widget>
