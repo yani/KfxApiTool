@@ -117,12 +117,14 @@
      <string>Event</string>
     </property>
     <addaction name="actionSubscribeEvent"/>
+    <addaction name="actionClearEventSubs"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
      <string>About</string>
     </property>
     <addaction name="actionCheckForUpdate"/>
+    <addaction name="actionWorkshopPage"/>
     <addaction name="actionKeeperFxWebsite"/>
     <addaction name="actionAbout"/>
    </widget>
@@ -148,12 +150,14 @@
     <addaction name="actionSetVar"/>
     <addaction name="actionSubscribeVariable"/>
     <addaction name="actionLoadMapfileVariables"/>
+    <addaction name="actionClearVarSubs"/>
    </widget>
    <widget class="QMenu" name="menuCommand">
     <property name="title">
      <string>Command</string>
     </property>
     <addaction name="actionAddCommand"/>
+    <addaction name="actionClearCommands"/>
    </widget>
    <widget class="QMenu" name="menuPreset">
     <property name="title">
@@ -265,6 +269,26 @@
   <action name="actionCheckForUpdate">
    <property name="text">
     <string>Check for update</string>
+   </property>
+  </action>
+  <action name="actionClearVarSubs">
+   <property name="text">
+    <string>Clear subscriptions</string>
+   </property>
+  </action>
+  <action name="actionClearEventSubs">
+   <property name="text">
+    <string>Clear subscriptions</string>
+   </property>
+  </action>
+  <action name="actionClearCommands">
+   <property name="text">
+    <string>Clear commands</string>
+   </property>
+  </action>
+  <action name="actionWorkshopPage">
+   <property name="text">
+    <string>Workshop Page</string>
    </property>
   </action>
  </widget>

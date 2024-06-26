@@ -43,12 +43,15 @@ KfxApiTool::KfxApiTool(QWidget *parent)
     connect(ui->actionSetVar, &QAction::triggered, this, &KfxApiTool::openSetVariableDialog);
     connect(ui->actionSubscribeVariable, &QAction::triggered, this, &KfxApiTool::openSubscribeVariableDialog);
     connect(ui->actionLoadMapfileVariables, &QAction::triggered, this, &KfxApiTool::loadMapfileVariables);
+    connect(ui->actionClearVarSubs, &QAction::triggered, this, &KfxApiTool::clearVarSubs);
 
     // Menu: EVENT
     connect(ui->actionSubscribeEvent, &QAction::triggered, this, &KfxApiTool::openSubscribeEventDialog);
+    connect(ui->actionClearEventSubs, &QAction::triggered, this, &KfxApiTool::clearEventSubs);
 
     // Menu: COMMAND
     connect(ui->actionAddCommand, &QAction::triggered, this, &KfxApiTool::openAddCommandDialog);
+    connect(ui->actionClearCommands, &QAction::triggered, this, &KfxApiTool::clearCommands);
 
     // Menu: PRESET
     connect(ui->actionSavePreset, &QAction::triggered, this, &KfxApiTool::savePreset);
@@ -64,6 +67,9 @@ KfxApiTool::KfxApiTool(QWidget *parent)
     connect(ui->actionAbout, &QAction::triggered, this, &KfxApiTool::openAboutDialog);
     connect(ui->actionKeeperFxWebsite, &QAction::triggered, this, [this]() {
         QDesktopServices::openUrl(QUrl("https://keeperfx.net"));
+    });
+    connect(ui->actionWorkshopPage, &QAction::triggered, this, [this]() {
+        QDesktopServices::openUrl(QUrl("https://keeperfx.net/workshop/item/674"));
     });
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,11 +116,22 @@ KfxApiTool::KfxApiTool(QWidget *parent)
         ui->menuWindow->setDisabled(true);
         ui->menuWindow->setToolTip("Only available on Windows");
     }
+
+    // Disable clear alls
+    ui->actionClearVarSubs->setDisabled(true);
+    ui->actionClearEventSubs->setDisabled(true);
+    ui->actionClearCommands->setDisabled(true);
 }
 
 KfxApiTool::~KfxApiTool()
 {
     delete ui;
+}
+
+// Public getter for the UI
+Ui::KfxApiTool* KfxApiTool::getUi() const
+{
+    return ui;
 }
 
 QString KfxApiTool::playerToHtml(QString playerName)
@@ -365,6 +382,11 @@ void KfxApiTool::removeSubscribedVariableWidget(SubscribedVariableWidget *widget
         // Delete the widget if necessary
         widget->deleteLater();
     }
+
+    // Set state of clear all menu item
+    ui->actionClearVarSubs->setDisabled(
+        subbedVariableWidgetList.count() == 0
+        );
 }
 
 SubscribedEventWidget* KfxApiTool::findSubscribedEventWidget(const QString &event)
@@ -392,6 +414,11 @@ void KfxApiTool::removeSubscribedEventWidget(SubscribedEventWidget *widget)
         // Delete the widget if necessary
         widget->deleteLater();
     }
+
+    // Set state of clear all menu item
+    ui->actionClearEventSubs->setDisabled(
+        subbedEventWidgetList.count() == 0
+        );
 }
 
 void KfxApiTool::handleSubscribeToVariableReturn(const QJsonObject &request, const QJsonObject &response)
@@ -1379,32 +1406,9 @@ void KfxApiTool::loadPresetFromFile(const QString &filePath)
         }
     }
 
-    // Remove any subscribed variables
-    for(SubscribedVariableWidget *widget: subbedVariableWidgetList)
-    {
-        QString player = widget->player;
-        QString variable = widget->variable;
-
-        // Hide widget asap
-        widget->hide();
-        widget->deleteLater();
-
-        // Actually unsubscribe on API
-        removeSubscribedVariable(player, variable);
-    }
-
-    // Remove any subscribed events
-    for(SubscribedEventWidget *widget: subbedEventWidgetList)
-    {
-        QString event = widget->event;
-
-        // Hide widget asap
-        widget->hide();
-        widget->deleteLater();
-
-        // Actually unsubscribe on API
-        removeSubscribedEvent(widget->event);
-    }
+    // Remove all subscriptions
+    clearVarSubs();
+    clearEventSubs();
 
     // Clear the subscription lists
     subbedEventWidgetList.clear();
@@ -1488,6 +1492,9 @@ void KfxApiTool::addSubscribedVariableWidget(const QString &player, const QStrin
     connect(widget, &SubscribedVariableWidget::editSubbedVariable, this, &KfxApiTool::editSubscribedVariable);
     areaVarSubsScrollLayout->addWidget(widget);
     subbedVariableWidgetList.append(widget);
+
+    // Set state of clear all menu item
+    ui->actionClearVarSubs->setDisabled(false);
 }
 
 void KfxApiTool::addSubscribedEventWidget(const QString &event){
@@ -1495,6 +1502,9 @@ void KfxApiTool::addSubscribedEventWidget(const QString &event){
     connect(widget, &SubscribedEventWidget::removeSubbedEvent, this, &KfxApiTool::removeSubscribedEvent);
     areaVarSubsScrollLayout->addWidget(widget);
     subbedEventWidgetList.append(widget);
+
+    // Set state of clear all menu item
+    ui->actionClearEventSubs->setDisabled(false);
 }
 
 void KfxApiTool::addCommandWidget(const QString &name, int type, const QString &command){
@@ -1502,6 +1512,9 @@ void KfxApiTool::addCommandWidget(const QString &name, int type, const QString &
     connect(widget, &CommandWidget::executeCommand, this, &KfxApiTool::handleCommandExecuted);
     connect(widget, &CommandWidget::editCommand, this, &KfxApiTool::openEditCommandDialog);
     areaCommandsScrollLayout->addWidget(widget);
+
+    // Set state of clear all menu item
+    ui->actionClearCommands->setDisabled(false);
 }
 
 void KfxApiTool::loadMapfileVariables()
@@ -1633,4 +1646,57 @@ void KfxApiTool::loadMapfileVariablesFromFile(QString &filePath)
     } else {
         QMessageBox::information(this, "KfxApiTool", "Mapfile loaded and " + QString::number(variablesAddedCount) + " variables added");
     }
+}
+
+void KfxApiTool::clearVarSubs()
+{
+    for(SubscribedVariableWidget *widget: subbedVariableWidgetList)
+    {
+        QString player = widget->player;
+        QString variable = widget->variable;
+
+        // Hide widget asap
+        widget->hide();
+        widget->deleteLater();
+
+        // Actually unsubscribe on API
+        removeSubscribedVariable(player, variable);
+    }
+}
+
+void KfxApiTool::clearEventSubs()
+{
+    for(SubscribedEventWidget *widget: subbedEventWidgetList)
+    {
+        QString event = widget->event;
+
+        // Hide widget asap
+        widget->hide();
+        widget->deleteLater();
+
+        // Actually unsubscribe on API
+        removeSubscribedEvent(widget->event);
+    }
+}
+
+void KfxApiTool::clearCommands()
+{
+    for(QObject* obj : ui->areaCommands->children())
+    {
+        // Cast to QWidget to filter out non-widget children
+        QWidget* widget = qobject_cast<QWidget*>(obj);
+        if (widget)
+        {
+            // Now cast to CommandWidget to ensure it's the correct type
+            CommandWidget* commandWidget = qobject_cast<CommandWidget*>(widget);
+            if (commandWidget)
+            {
+                // Hide widget asap
+                commandWidget->hide();
+                commandWidget->deleteLater();
+            }
+        }
+    }
+
+    ui->actionClearCommands->setDisabled(true);
 }

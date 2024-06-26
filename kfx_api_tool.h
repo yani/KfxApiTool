@@ -43,6 +43,8 @@ public:
     KfxApiTool(QWidget *parent = nullptr);
     ~KfxApiTool();
 
+    Ui::KfxApiTool* getUi() const;  // Public getter for the UI
+
 private slots:
     void openAboutDialog();
 
@@ -53,10 +55,12 @@ private slots:
     void handleSubscribeVariableSubmitted(const QString &player, const QString &text);
     void removeSubscribedVariable(const QString &player, const QString &variable);
     void editSubscribedVariable(const QString &player, const QString &variable, int value);
+    void clearVarSubs();
 
     void openSubscribeEventDialog();
     void handleSubscribeEventSubmitted(const QString &event);
     void removeSubscribedEvent(const QString &event);
+    void clearEventSubs();
 
     void toggleStayOnTop(bool checked);
     void toggleReconnect(bool checked);
@@ -64,9 +68,9 @@ private slots:
     void openAddCommandDialog();
     void handleCommandSubmitted(const QString &name, int type, const QString &command);
     void handleCommandExecuted(const QString &name, int type, const QString &command);
-
     void openEditCommandDialog(CommandWidget *widget, const QString &name, int type, const QString &command);
     void handleCommandUpdated(CommandWidget *widget, const QString &name, int type, const QString &command);
+    void clearCommands();
 
     void openSetVariableDialog();
     void handleSetVarSubmitted(const QString &player, const QString &command, int value);
